@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Brod Family Tree</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="site-header">
+    <div class="header-content">
+      <div class="header-icon">🌳</div>
+      <div>
+        <h1 class="site-title">The Brod Family Tree</h1>
+        <p class="site-subtitle">Roots run deep &mdash; stories last forever</p>
+      </div>
+    </div>
+    <nav class="header-nav">
+      <button class="nav-btn active" onclick="scrollToTree()">Family Tree</button>
+      <button class="nav-btn" disabled title="Coming soon">Search</button>
+      <button class="nav-btn" disabled title="Coming soon">Timeline</button>
+      <button class="nav-btn" disabled title="Coming soon">Gallery</button>
+    </nav>
+  </header>
+
+  <!-- HERO BANNER -->
+  <section class="hero">
+    <div class="hero-text">
+      <h2>Discover Your Roots</h2>
+      <p>Click on any family member to explore their life story, photos, and history.</p>
+      <div class="hero-stats">
+        <div class="stat"><span class="stat-num">25</span><span class="stat-label">Members</span></div>
+        <div class="stat-divider"></div>
+        <div class="stat"><span class="stat-num">5</span><span class="stat-label">Generations</span></div>
+        <div class="stat-divider"></div>
+        <div class="stat"><span class="stat-num">1898</span><span class="stat-label">Earliest Record</span></div>
+      </div>
+    </div>
+    <div class="hero-decoration" aria-hidden="true">
+      <!-- Faded tree illustration -->
+      <svg class="hero-tree-svg" viewBox="0 0 260 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Trunk -->
+        <path d="M130 320 L130 190" stroke="white" stroke-width="9" stroke-linecap="round"/>
+        <!-- Main branches -->
+        <path d="M130 210 L60 110" stroke="white" stroke-width="6" stroke-linecap="round"/>
+        <path d="M130 210 L200 110" stroke="white" stroke-width="6" stroke-linecap="round"/>
+        <!-- Left sub-branches -->
+        <path d="M80 155 L30 75"  stroke="white" stroke-width="4" stroke-linecap="round"/>
+        <path d="M80 155 L95 68"  stroke="white" stroke-width="4" stroke-linecap="round"/>
+        <!-- Right sub-branches -->
+        <path d="M180 155 L165 68" stroke="white" stroke-width="4" stroke-linecap="round"/>
+        <path d="M180 155 L230 75" stroke="white" stroke-width="4" stroke-linecap="round"/>
+        <!-- Tertiary left -->
+        <path d="M48 108 L15 55"  stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M48 108 L58 48"  stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        <!-- Tertiary right -->
+        <path d="M212 108 L202 48"  stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M212 108 L245 55" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        <!-- Roots -->
+        <path d="M130 310 Q90 330 45 318"  stroke="white" stroke-width="5" stroke-linecap="round"/>
+        <path d="M130 310 Q170 332 215 318" stroke="white" stroke-width="5" stroke-linecap="round"/>
+        <path d="M90 318 Q55 342 22 336"  stroke="white" stroke-width="3" stroke-linecap="round"/>
+        <path d="M170 318 Q205 340 238 334" stroke="white" stroke-width="3" stroke-linecap="round"/>
+        <path d="M70 325 Q45 350 15 352"  stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <path d="M190 325 Q215 348 244 350" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- LEGEND -->
+  <div class="legend-bar">
+    <span class="legend-title">Legend:</span>
+    <span class="legend-item"><span class="legend-dot dot-alive"></span> Living</span>
+    <span class="legend-item"><span class="legend-dot dot-deceased"></span> Deceased</span>
+    <span class="legend-item"><span class="legend-dot dot-unknown"></span> Unknown</span>
+    <span class="legend-sep">|</span>
+    <span class="legend-item">Click any card to view details</span>
+  </div>
+
+  <!-- FAMILY TREE CANVAS -->
+  <section class="tree-section" id="tree-section">
+    <div class="tree-scroll-wrapper">
+      <div class="tree-canvas" id="tree-canvas">
+        <!-- Tree is rendered by tree.js -->
+      </div>
+    </div>
+  </section>
+
+  <!-- PERSON DETAIL MODAL -->
+  <div class="modal-overlay" id="modal-overlay" onclick="closeModal()">
+    <div class="modal" id="modal" onclick="event.stopPropagation()">
+      <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+      <div class="modal-photo-section">
+        <div class="modal-photo" id="modal-photo">
+          <span class="photo-placeholder">👤</span>
+        </div>
+        <div class="modal-badge" id="modal-badge">Living</div>
+      </div>
+      <div class="modal-body">
+        <h2 class="modal-name" id="modal-name"></h2>
+        <div class="modal-dates" id="modal-dates"></div>
+        <div class="modal-location" id="modal-location"></div>
+        <hr class="modal-divider" />
+        <p class="modal-bio" id="modal-bio"></p>
+        <div class="modal-relations" id="modal-relations"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <p>🌳 The Brod Family Tree &mdash; A living record of our heritage</p>
+    <p class="footer-sub">Built with love &bull; Updated 2025</p>
+  </footer>
+
+  <script src="family-data.js"></script>
+  <script src="tree.js"></script>
+  <script src="modal.js"></script>
+
+</body>
+</html>
