@@ -7,7 +7,7 @@
 const SVG_SIZE   = 880;
 const CX         = SVG_SIZE / 2;
 const CY         = SVG_SIZE / 2;
-const PORTRAIT_R = 14;
+const PORTRAIT_R = 17;
 const DOT_R      = 5;
 const YEAR_MIN   = 1888;
 const YEAR_MAX   = 2032;
@@ -36,10 +36,10 @@ function polar(angleDeg, r) {
 }
 
 function getStatusColor(s) {
-  return s === "alive" ? "#4e8c4a" : s === "deceased" ? "#c9a96e" : "#a0a0a0";
+  return s === "alive" ? "#6ab867" : s === "deceased" ? "#d4a843" : "#666666";
 }
 function getStatusBg(s) {
-  return s === "alive" ? "#eef7ee" : s === "deceased" ? "#fdf5e4" : "#f4f4f4";
+  return s === "alive" ? "#0d1f0d" : s === "deceased" ? "#1f1a08" : "#141414";
 }
 
 // Label rotation so names radiate outward, always readable
@@ -95,24 +95,24 @@ function getLineage(id) {
 function highlightLineage(hoveredId) {
   const lineage = getLineage(hoveredId);
   Object.entries(NODE_GROUPS).forEach(([id, g]) => {
-    g.style.opacity = lineage.has(id) ? "1" : "0.15";
+    g.style.opacity = lineage.has(id) ? "1" : "0.1";
     g.style.filter  = id === hoveredId ? "url(#node-glow)" : "";
   });
   Object.entries(CONN_PATHS).forEach(([key, path]) => {
     const [pid, cid] = key.split("|");
     const on = lineage.has(pid) && lineage.has(cid);
-    path.setAttribute("stroke",       on ? "#4e8c4a" : "#c0a87a");
-    path.setAttribute("stroke-width", on ? "3.5"     : "2.5");
-    path.setAttribute("opacity",      on ? "1"       : "0.1");
+    path.setAttribute("stroke",       on ? "#6ab867" : "rgba(212,168,67,0.3)");
+    path.setAttribute("stroke-width", on ? "3"       : "1.5");
+    path.setAttribute("opacity",      on ? "1"       : "0.05");
   });
 }
 
 function resetHighlight() {
   Object.values(NODE_GROUPS).forEach(g => { g.style.opacity = "1"; g.style.filter = ""; });
   Object.values(CONN_PATHS).forEach(path => {
-    path.setAttribute("stroke",       "#c0a87a");
-    path.setAttribute("stroke-width", "2.5");
-    path.setAttribute("opacity",      "0.85");
+    path.setAttribute("stroke",       "rgba(212,168,67,0.35)");
+    path.setAttribute("stroke-width", "2");
+    path.setAttribute("opacity",      "0.75");
   });
 }
 
@@ -168,7 +168,7 @@ function createCanvas() {
     width: SVG_SIZE, height: SVG_SIZE, style: "display:block",
   });
   canvas.appendChild(svg);
-  svg.appendChild(svgEl("rect", { width: SVG_SIZE, height: SVG_SIZE, fill: "#fdf8f0" }));
+  svg.appendChild(svgEl("rect", { width: SVG_SIZE, height: SVG_SIZE, fill: "#0f1117" }));
 
   // Glow filter
   const defs  = svgEl("defs");
@@ -231,7 +231,7 @@ function buildMemberNode(member, pos, defs, { nodeR, onClick, angle = null, font
     const txt = svgEl("text", {
       x: pos.x, y: pos.y,
       "text-anchor": ls.anchor, "dominant-baseline": "middle",
-      "font-size": fontSize, fill: "#3a2e1e",
+      "font-size": fontSize, fill: "#c8b88a",
       "font-family": "Playfair Display, Georgia, serif",
       style: "pointer-events:none;user-select:none;",
       transform: `rotate(${ls.rot}, ${pos.x}, ${pos.y}) translate(${ls.offset}, 0)`,
@@ -257,13 +257,17 @@ function buildMemberNode(member, pos, defs, { nodeR, onClick, angle = null, font
 //  Connection path helper
 // ──────────────────────────────────────────────────────────────
 function addConnection(svg, parentPos, childPos, key, opts = {}) {
+  const mx  = (parentPos.x + childPos.x) / 2;
+  const my  = (parentPos.y + childPos.y) / 2;
+  const cpx = mx + (CX - mx) * 0.45;
+  const cpy = my + (CY - my) * 0.45;
   const path = svgEl("path", {
-    d: `M ${parentPos.x} ${parentPos.y} L ${childPos.x} ${childPos.y}`,
+    d: `M ${parentPos.x} ${parentPos.y} Q ${cpx} ${cpy} ${childPos.x} ${childPos.y}`,
     fill: "none",
-    stroke:           opts.stroke       ?? "#c0a87a",
-    "stroke-width":   opts.strokeWidth  ?? "2.5",
+    stroke:           opts.stroke       ?? "rgba(212,168,67,0.35)",
+    "stroke-width":   opts.strokeWidth  ?? "2",
     "stroke-linecap": "round",
-    opacity:          opts.opacity      ?? "0.85",
+    opacity:          opts.opacity      ?? "0.75",
     ...(opts.dash ? { "stroke-dasharray": opts.dash } : {}),
   });
   CONN_PATHS[key] = path;
@@ -282,13 +286,13 @@ function buildFullTree() {
   for (let year = 1900; year <= 2020; year += 10) {
     const r = yearToR(year);
     ringsG.appendChild(svgEl("circle", {
-      cx: CX, cy: CY, r, fill: "none", stroke: "#d4c5a8",
-      "stroke-width": 0.7, "stroke-dasharray": "3,5", opacity: 0.65,
+      cx: CX, cy: CY, r, fill: "none", stroke: "rgba(212,168,67,0.15)",
+      "stroke-width": 0.8, "stroke-dasharray": "3,6", opacity: 1,
     }));
     const lp  = polar(0, r);
     const lbl = svgEl("text", {
       x: lp.x, y: lp.y - 5, "text-anchor": "middle",
-      "font-size": 9, fill: "#a08060", opacity: 0.8,
+      "font-size": 9, fill: "rgba(212,168,67,0.4)", opacity: 1,
       "font-family": "Playfair Display, Georgia, serif",
     });
     lbl.textContent = year;
@@ -311,6 +315,7 @@ function buildFullTree() {
 
   // Person nodes
   const nodesG = svgEl("g");
+  let nodeIdx = 0;
   FAMILY_DATA.members.forEach(member => {
     if (member.id === "p01" || member.id === "p02") return;
     const angle = MEMBER_ANGLES[member.id];
@@ -321,20 +326,23 @@ function buildFullTree() {
       nodeR, angle,
       onClick: () => enterFocusMode(member.id),
     });
+    nodeG.style.animationDelay = `${(nodeIdx * 0.04).toFixed(2)}s`;
+    nodeIdx++;
     NODE_GROUPS[member.id] = nodeG;
     nodesG.appendChild(nodeG);
   });
   svg.appendChild(nodesG);
 
   // Center couple
-  const R = 18;
-  [["p01", CX - R * 0.85], ["p02", CX + R * 0.85]].forEach(([id, cx]) => {
+  const R = 23;
+  [["p01", CX - R * 0.82], ["p02", CX + R * 0.82]].forEach(([id, cx], i) => {
     const member = MEMBER_MAP[id];
     if (!member) return;
     const nodeG = buildMemberNode(member, { x: cx, y: CY }, defs, {
       nodeR: R,
       onClick: () => enterFocusMode(id),
     });
+    nodeG.style.animationDelay = `${((nodeIdx + i) * 0.04).toFixed(2)}s`;
     NODE_GROUPS[id] = nodeG;
     svg.appendChild(nodeG);
   });
@@ -342,15 +350,15 @@ function buildFullTree() {
   // Shared label for center couple
   const lblG = svgEl("g", { style: "pointer-events:none" });
   const n = svgEl("text", {
-    x: CX, y: CY - R - 10, "text-anchor": "middle",
-    "font-size": 13, "font-weight": "bold", fill: "#2d5c2a",
+    x: CX, y: CY - R - 12, "text-anchor": "middle",
+    "font-size": 13, "font-weight": "bold", fill: "#d4a843",
     "font-family": "Playfair Display, Georgia, serif",
   });
   n.textContent = "James & Clara";
   lblG.appendChild(n);
   const s = svgEl("text", {
-    x: CX, y: CY + R + 16, "text-anchor": "middle",
-    "font-size": 10, fill: "#7a6040",
+    x: CX, y: CY + R + 18, "text-anchor": "middle",
+    "font-size": 10, fill: "rgba(212,168,67,0.6)",
     "font-family": "Inter, sans-serif",
   });
   s.textContent = "Hartwell";
@@ -376,8 +384,8 @@ function buildFocusView(memberId) {
   // Guide rings
   [INNER_R, OUTER_R].forEach(r => {
     svg.appendChild(svgEl("circle", {
-      cx: CX, cy: CY, r, fill: "none", stroke: "#d4c5a8",
-      "stroke-width": 1, "stroke-dasharray": "6,6", opacity: 0.45,
+      cx: CX, cy: CY, r, fill: "none", stroke: "rgba(212,168,67,0.18)",
+      "stroke-width": 1, "stroke-dasharray": "6,6", opacity: 1,
     }));
   });
 
@@ -413,13 +421,14 @@ function buildFocusView(memberId) {
   innerPeople.forEach(({ m, isSpouse }, i) => {
     const pos = polar(innerAngles[i], INNER_R);
     addConnection(svg, { x: CX, y: CY }, pos, `${m.id}|${memberId}`, {
-      stroke:      isSpouse ? "#c9a96e" : "#c0a87a",
-      dash:        isSpouse ? "5,4"     : undefined,
+      stroke:      isSpouse ? "rgba(212,168,67,0.5)" : "rgba(212,168,67,0.35)",
+      dash:        isSpouse ? "5,4"                  : undefined,
     });
     const nodeG = buildMemberNode(m, pos, defs, {
       nodeR: PORTRAIT_R, angle: innerAngles[i],
       onClick: () => enterFocusMode(m.id),
     });
+    nodeG.style.animationDelay = `${(i * 0.08).toFixed(2)}s`;
     NODE_GROUPS[m.id] = nodeG;
     svg.appendChild(nodeG);
   });
@@ -433,6 +442,7 @@ function buildFocusView(memberId) {
       nodeR: PORTRAIT_R, angle: outerAngles[i],
       onClick: () => enterFocusMode(m.id),
     });
+    nodeG.style.animationDelay = `${(i * 0.08).toFixed(2)}s`;
     NODE_GROUPS[m.id] = nodeG;
     svg.appendChild(nodeG);
   });
@@ -449,16 +459,16 @@ function buildFocusView(memberId) {
   const clbls = svgEl("g", { style: "pointer-events:none" });
 
   const nm = svgEl("text", {
-    x: CX, y: CY + CENTER_R + 17, "text-anchor": "middle",
-    "font-size": 14, "font-weight": "bold", fill: "#2d5c2a",
+    x: CX, y: CY + CENTER_R + 18, "text-anchor": "middle",
+    "font-size": 14, "font-weight": "bold", fill: "#d4a843",
     "font-family": "Playfair Display, Georgia, serif",
   });
   nm.textContent = member.firstName + " " + member.lastName;
   clbls.appendChild(nm);
 
   const hint = svgEl("text", {
-    x: CX, y: CY + CENTER_R + 33, "text-anchor": "middle",
-    "font-size": 10, fill: "#8a7055", "font-family": "Inter, sans-serif",
+    x: CX, y: CY + CENTER_R + 34, "text-anchor": "middle",
+    "font-size": 10, fill: "rgba(212,168,67,0.5)", "font-family": "Inter, sans-serif",
   });
   hint.textContent = "Click to view profile";
   clbls.appendChild(hint);
@@ -469,7 +479,7 @@ function buildFocusView(memberId) {
   function ringLabel(text, y) {
     const lbl = svgEl("text", {
       x: CX, y, "text-anchor": "middle",
-      "font-size": 9, fill: "#a08060", "letter-spacing": "1",
+      "font-size": 9, fill: "rgba(212,168,67,0.45)", "letter-spacing": "1",
       "font-family": "Inter, sans-serif", style: "pointer-events:none",
     });
     lbl.textContent = text.toUpperCase();

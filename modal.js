@@ -12,7 +12,7 @@ function openModal(memberId) {
   const photoEl = document.getElementById("modal-photo");
   photoEl.innerHTML = member.photo
     ? `<img src="${member.photo}" alt="Photo of ${member.firstName}" />`
-    : `<span class="photo-placeholder">${member.emoji}</span>`;
+    : `<span class="photo-placeholder"><svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="40" cy="27" r="15" fill="currentColor"/><path d="M10 74c0-16.569 13.431-30 30-30s30 13.431 30 30" fill="currentColor"/></svg></span>`;
 
   // --- Badge ---
   const badgeEl = document.getElementById("modal-badge");
@@ -22,9 +22,17 @@ function openModal(memberId) {
     ? "Deceased"
     : "Unknown";
   badgeEl.style.background =
-    member.status === "alive"    ? "rgba(125,184,122,0.35)" :
-    member.status === "deceased" ? "rgba(201,169,110,0.35)" :
-    "rgba(180,180,180,0.35)";
+    member.status === "alive"    ? "rgba(106,184,103,0.12)" :
+    member.status === "deceased" ? "rgba(212,168,67,0.12)"  :
+    "rgba(255,255,255,0.06)";
+  badgeEl.style.color =
+    member.status === "alive"    ? "#6ab867" :
+    member.status === "deceased" ? "#d4a843" :
+    "#9a8d72";
+  badgeEl.style.borderColor =
+    member.status === "alive"    ? "rgba(106,184,103,0.35)" :
+    member.status === "deceased" ? "rgba(212,168,67,0.35)"  :
+    "rgba(255,255,255,0.12)";
 
   // --- Name ---
   document.getElementById("modal-name").textContent =
@@ -46,6 +54,23 @@ function openModal(memberId) {
     datesEl.style.display = "";
   } else {
     datesEl.textContent = "Birth and death dates unknown";
+  }
+
+  // --- Lifespan Timeline ---
+  const timelineEl = document.getElementById("modal-timeline");
+  if (member.born && timelineEl) {
+    const TSTART = 1895, TEND = 2030, TRANGE = TEND - TSTART;
+    const bornY  = parseInt(member.born);
+    const endY   = member.died ? parseInt(member.died) : new Date().getFullYear();
+    const leftPct  = Math.max(0, ((bornY - TSTART) / TRANGE) * 100);
+    const widthPct = Math.min(((endY - bornY) / TRANGE) * 100, 100 - leftPct);
+    document.getElementById("modal-timeline-bar").style.left  = leftPct + "%";
+    document.getElementById("modal-timeline-bar").style.width = widthPct + "%";
+    document.getElementById("modal-timeline-born").textContent = member.born;
+    document.getElementById("modal-timeline-end").textContent  = member.died || "Present";
+    timelineEl.style.display = "";
+  } else if (timelineEl) {
+    timelineEl.style.display = "none";
   }
 
   // --- Location ---
