@@ -39,7 +39,7 @@ export default function Hero() {
           <div className="hero-eyebrow">EST. 1823 &middot; BOSTON, MASSACHUSETTS</div>
 
           <h1 className="hero-title">
-            The Harrington<br />
+            The Brod<br />
             Family <span className="hero-title-accent">Legacy</span>
           </h1>
 
@@ -48,7 +48,7 @@ export default function Hero() {
           </p>
 
           <p className="hero-body">
-            From William Harrington's arrival in Boston Harbor in 1847 to today,
+            From William Brod's arrival in Boston Harbor in 1847 to today,
             this archive spans eight generations, five countries of origin, and over
             175 years of family history — doctors, artists, soldiers, builders, and scholars
             whose lives illuminate the story of America itself.

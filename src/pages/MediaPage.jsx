@@ -12,7 +12,7 @@ export default function MediaPage() {
           <h1>Family Archive</h1>
           <p>
             A curated collection of photographs, documents, and records
-            spanning eight generations of the Harrington family.
+            spanning eight generations of the Brod family.
           </p>
         </div>
         <MediaGallery />

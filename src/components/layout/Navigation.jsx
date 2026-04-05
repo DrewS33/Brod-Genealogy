@@ -23,7 +23,7 @@ export default function Navigation() {
       <nav className={`nav ${scrolled ? 'nav--scrolled' : 'nav--transparent'}`}>
         <div className="nav-inner">
           <Link to="/" className="nav-logo">
-            <span className="nav-logo-primary">✦ Harrington</span>
+            <span className="nav-logo-primary">✦ Brod</span>
             <span className="nav-logo-sub">Family Archive</span>
           </Link>
 

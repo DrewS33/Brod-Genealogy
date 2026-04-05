@@ -10,7 +10,7 @@ export default function AboutPage() {
       <div className="about-page">
         {/* Hero */}
         <div className="about-hero">
-          <h1>About the Harrington Archive</h1>
+          <h1>About the Brod Archive</h1>
           <p className="about-hero-sub">
             A living record of eight generations, assembled with care.
           </p>
@@ -22,8 +22,8 @@ export default function AboutPage() {
           <section className="about-section">
             <h2>The Collection</h2>
             <p>
-              The Harrington Family Archive began as a personal project of Dr. Richard
-              Harrington (1928–2010), who spent the final decades of his career as a
+              The Brod Family Archive began as a personal project of Dr. Richard
+              Brod (1928–2010), who spent the final decades of his career as a
               cardiologist at Massachusetts General Hospital assembling the letters,
               photographs, and documents that now form the core of this record. What
               started as a shoebox of old photographs has grown into a collection of
@@ -31,17 +31,17 @@ export default function AboutPage() {
               personal narratives spanning twelve generations.
             </p>
             <p>
-              The archive is now curated by Dr. Catherine Harrington, Professor of
+              The archive is now curated by Dr. Catherine Brod, Professor of
               American History at Boston College, who has applied her scholarly expertise
               to verifying, contextualizing, and expanding the record. The digital
-              platform was built by Michael Harrington, software engineer, ensuring that
+              platform was built by Michael Brod, software engineer, ensuring that
               the family's history is preserved and accessible for generations to come.
             </p>
 
             <blockquote className="about-pullquote">
               "Every name in this archive was a person who laughed and struggled and
               loved. Our task is to remember them well."
-              <br /><em style={{ fontSize: '0.9rem', color: 'var(--stone-500)' }}>— Richard Harrington, 1978</em>
+              <br /><em style={{ fontSize: '0.9rem', color: 'var(--stone-500)' }}>— Richard Brod, 1978</em>
             </blockquote>
           </section>
 
@@ -49,10 +49,10 @@ export default function AboutPage() {
 
           {/* The Legacy */}
           <section className="about-section">
-            <h2>The Harrington Legacy</h2>
+            <h2>The Brod Legacy</h2>
             <p>
-              The Harrington story in America begins on a cold March morning in 1847,
-              when William Harrington — a young farmer's son from Shropshire — stepped
+              The Brod story in America begins on a cold March morning in 1847,
+              when William Brod — a young farmer's son from Shropshire — stepped
               off the SS Providence and onto the docks of Boston Harbor. He was twenty-three
               years old, carrying a leather-bound journal and a letter of introduction to a
               distant cousin in the dry goods trade.
@@ -60,13 +60,13 @@ export default function AboutPage() {
             <p>
               Over the next 175 years, the family he founded would encompass bankers and
               artists, soldiers and scholars, immigrants from Germany, Poland, and China
-              who each brought their own heritage into the Harrington tapestry. His
+              who each brought their own heritage into the Brod tapestry. His
               great-grandson Richard would become a pioneering cardiologist; his
               great-great-grandchildren work today as engineers, journalists, marine
               biologists, and chefs.
             </p>
             <p>
-              The arc of the Harrington family is, in many ways, the arc of America
+              The arc of the Brod family is, in many ways, the arc of America
               itself — from the merchant economy of the mid-nineteenth century through
               the industrialization of the Gilded Age, the devastation of two World Wars,
               the social transformations of the twentieth century, and into the complexity
@@ -80,17 +80,17 @@ export default function AboutPage() {
           <section className="about-section">
             <h2>Origins</h2>
             <p>
-              <strong>The English Line.</strong> William Harrington was born in Shrewsbury,
+              <strong>The English Line.</strong> William Brod was born in Shrewsbury,
               Shropshire, in 1823, the third of six children of Thomas and Eleanor
-              Harrington. He emigrated in 1847, likely motivated by a combination of
+              Brod. He emigrated in 1847, likely motivated by a combination of
               economic ambition and the broader upheaval of mid-Victorian England.
               His journals suggest a man of unusual curiosity and ambition: he taught
               himself double-entry bookkeeping on the crossing, and within three years
-              of arrival had founded Harrington & Sons Import Co.
+              of arrival had founded Brod & Sons Import Co.
             </p>
             <p>
               <strong>The German Line.</strong> The Müller branch entered the family
-              through Robert Harrington's 1871 marriage to Clara Müller, daughter of
+              through Robert Brod's 1871 marriage to Clara Müller, daughter of
               Heinrich and Rosalinde Müller of Stuttgart. Heinrich had emigrated as part
               of the great wave of German liberals who fled after the failed revolutions
               of 1848 — a migration that shaped the character of cities from Cincinnati
@@ -99,7 +99,7 @@ export default function AboutPage() {
             </p>
             <p>
               <strong>The New England Line.</strong> Agnes Pemberton, who married George
-              Harrington in 1898, brought deep colonial-era New England roots into the
+              Brod in 1898, brought deep colonial-era New England roots into the
               family. Her father Frederick was a land surveyor whose precision maps helped
               establish the boundaries of Massachusetts townships in the era of suburban
               expansion. The Clarke line, through Agnes's mother Dorothy, extends to the
@@ -107,12 +107,12 @@ export default function AboutPage() {
             </p>
             <p>
               <strong>The Polish and Chinese Lines.</strong> The twentieth century brought
-              new threads into the Harrington fabric. Helen Kowalski, born in South Boston
-              to Polish immigrant parents, married Richard Harrington in 1953 — a union
+              new threads into the Brod fabric. Helen Kowalski, born in South Boston
+              to Polish immigrant parents, married Richard Brod in 1953 — a union
               that was, at the time, considered quite a crossing of social worlds. Their
               son James later married Susan Chen, a pediatrician from a Chinese-American
               family in San Francisco. These newest threads make the seventh generation
-              of Harringtons among the most culturally diverse in the family's long history.
+              of Brods among the most culturally diverse in the family's long history.
             </p>
           </section>
 
@@ -123,11 +123,11 @@ export default function AboutPage() {
             <h2>Family Branches</h2>
             <p>
               The archive organizes the extended family into six primary branches,
-              each representing a distinct family line that joined the Harrington tree.
+              each representing a distinct family line that joined the Brod tree.
             </p>
             <div className="about-branches-grid">
               <div className="about-branch-card">
-                <div className="about-branch-name">Harrington Branch</div>
+                <div className="about-branch-name">Brod Branch</div>
                 <div className="about-branch-desc">
                   The founding line, originating in Shropshire, England. From William's
                   arrival in 1847 through seven generations of American-born descendants,
@@ -214,12 +214,12 @@ export default function AboutPage() {
             <h2>Contribute to the Archive</h2>
             <p>
               Do you have photographs, documents, letters, or memories related to
-              the Harrington family? The archive is a living document, and contributions
+              the Brod family? The archive is a living document, and contributions
               from family members are warmly welcomed.
             </p>
             <p>
               Particularly sought: photographs of the Brookline farmstead (pre-1940),
-              correspondence from Frederick Harrington II's military service, and
+              correspondence from Frederick Brod II's military service, and
               any materials relating to the Müller workshop in the South End.
             </p>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '1.5rem', flexWrap: 'wrap' }}>
@@ -239,10 +239,10 @@ export default function AboutPage() {
             <h2>Acknowledgments</h2>
             <p>
               This archive was made possible by the dedication of many family members
-              across generations. Special thanks are due to the late Dr. Richard Harrington,
+              across generations. Special thanks are due to the late Dr. Richard Brod,
               whose vision and persistence in the 1970s–2000s created the foundation
-              upon which this digital archive rests; to Catherine Harrington, who has
-              served as scholarly curator since 2010; and to Michael Harrington, who
+              upon which this digital archive rests; to Catherine Brod, who has
+              served as scholarly curator since 2010; and to Michael Brod, who
               built the digital infrastructure.
             </p>
             <p>
@@ -250,7 +250,7 @@ export default function AboutPage() {
               the Boston Athenæum, the Dedham Historical Society, Harvard University
               Archives, Yale University Library, and the Fine Arts Work Center,
               Provincetown. Family correspondence and personal effects are maintained
-              by Catherine Harrington.
+              by Catherine Brod.
             </p>
             <p>
               The archive is a private family document. All rights reserved.

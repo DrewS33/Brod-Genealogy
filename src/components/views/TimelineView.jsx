@@ -75,7 +75,7 @@ export default function TimelineView() {
       <div className="timeline-inner">
         <div style={{ marginBottom: '2rem', paddingLeft: '100px' }}>
           <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.75rem', color: 'var(--ink-800)' }}>
-            The Harrington Family History
+            The Brod Family History
           </h2>
           <p style={{ color: 'var(--stone-500)', marginTop: '0.4rem', fontSize: '0.9rem' }}>
             {allEvents.length} recorded events spanning{' '}

@@ -5,11 +5,11 @@ import { getAvatarDataUri, formatLifespan } from '../../utils/formatters.js'
 
 const BRANCHES = [
   {
-    key: 'Harrington',
-    name: 'Harrington',
+    key: 'Brod',
+    name: 'Brod',
     origin: 'Shropshire, England · Est. 1823',
     color: '#2D5016',
-    filter: (p) => p.lastName === 'Harrington' || (p.maidenName === 'Harrington'),
+    filter: (p) => p.lastName === 'Brod' || (p.maidenName === 'Brod'),
     focalId: 'P001',
   },
   {
@@ -83,7 +83,7 @@ export default function BranchView() {
           Family Branches
         </h2>
         <p style={{ color: 'var(--stone-500)', fontSize: '0.9rem' }}>
-          The Harrington family tree draws from {BRANCHES.length} distinct family lines across 5 countries of origin.
+          The Brod family tree draws from {BRANCHES.length} distinct family lines across 5 countries of origin.
         </p>
       </div>
 

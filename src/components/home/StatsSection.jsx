@@ -57,7 +57,7 @@ export default function StatsSection() {
       <div className="stats-inner">
         <div className="stats-header">
           <h2 className="stats-title">The Archive at a Glance</h2>
-          <p className="stats-subtitle">A living record of the Harrington family, spanning twelve generations</p>
+          <p className="stats-subtitle">A living record of the Brod family, spanning twelve generations</p>
         </div>
 
         <div className="stats-grid">

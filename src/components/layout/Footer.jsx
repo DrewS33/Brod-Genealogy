@@ -6,7 +6,7 @@ export default function Footer() {
       <div className="footer-inner">
         {/* Brand */}
         <div>
-          <div className="footer-brand-name">The Harrington Family Archive</div>
+          <div className="footer-brand-name">The Brod Family Archive</div>
           <div className="footer-brand-tag">Eight generations, carefully preserved.</div>
           <svg width="48" height="48" viewBox="0 0 100 100" fill="none" style={{ marginTop: '1rem', opacity: 0.4 }}>
             <line x1="50" y1="90" x2="50" y2="10" stroke="#2D5016" strokeWidth="3" />
@@ -74,7 +74,7 @@ export default function Footer() {
           8,247 people &middot; 12 generations &middot; Since 1823
         </span>
         <span>
-          &copy; {new Date().getFullYear()} The Harrington Family Archive. All rights reserved.
+          &copy; {new Date().getFullYear()} The Brod Family Archive. All rights reserved.
         </span>
       </div>
     </footer>

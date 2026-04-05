@@ -14,7 +14,7 @@ export default function FeaturedAncestors() {
           <div className="section-eyebrow">Notable Ancestors</div>
           <h2 className="section-title">The Men Who Shaped the Family</h2>
           <p className="section-subtitle">
-            Four generations of Harrington men, each defining the family legacy of their era.
+            Four generations of Brod men, each defining the family legacy of their era.
           </p>
         </div>
 
