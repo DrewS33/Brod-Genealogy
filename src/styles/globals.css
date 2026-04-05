@@ -1068,11 +1068,25 @@ h1, h2, h3, h4, h5, h6 {
 /* 12. PERSON NODE SVG STYLES */
 .person-node {
   cursor: pointer;
+  transition: opacity var(--transition-base);
+}
+
+/* Expand/collapse buttons in the SVG tree */
+.tree-expand-btn {
+  opacity: 0;
   transition: opacity var(--transition-fast);
 }
 
-.person-node:hover {
-  opacity: 0.85;
+.person-node:hover .tree-expand-btn,
+.tree-expand-btn:hover {
+  opacity: 1;
+}
+
+/* Always show expand buttons on touch devices */
+@media (hover: none) {
+  .tree-expand-btn {
+    opacity: 1;
+  }
 }
 
 /* 13. PERSON PANEL */

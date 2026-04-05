@@ -1,237 +1,266 @@
 /**
- * Compute a tree layout for genealogy visualization.
- * Returns a Map of personId -> {x, y} and an array of edges.
+ * Focused family tree layout.
+ *
+ * Default view shows:
+ *   - Focal person + their spouse(s)          → y = 0
+ *   - Focal's parents                         → y = -vSpacing
+ *   - Focal's grandparents (parents of parents)→ y = -vSpacing*2
+ *   - Focal's children                        → y = +vSpacing
+ *
+ * Siblings and in-law ancestors are intentionally excluded to keep
+ * the view focused and readable.
+ *
+ * Expansion:
+ *   expandedAncestors  – Set of grandparent IDs whose own parents should be shown
+ *   expandedDescendants – Set of child IDs whose spouse + children should be shown
  */
 export function computeTreeLayout(focalPersonId, peopleMap, options = {}) {
   const {
-    generationsUp = 3,
-    generationsDown = 2,
-    hSpacing = 240,
-    vSpacing = 180,
+    expandedAncestors = new Set(),
+    expandedDescendants = new Set(),
+    hSpacing = 270,
+    vSpacing = 230,
   } = options
 
-  const positions = new Map()
-  const included = new Set()
+  const positions = new Map()  // personId → {x, y}
+  const layers = new Map()     // personId → generation number (0 = focal)
 
-  if (!peopleMap.has(focalPersonId)) return { positions, included }
-
-  // Place focal person at origin
-  positions.set(focalPersonId, { x: 0, y: 0 })
-  included.add(focalPersonId)
+  if (!peopleMap.has(focalPersonId)) return { positions, layers }
 
   const focal = peopleMap.get(focalPersonId)
 
-  // Place spouses of focal person
+  // ── Layer 0: Focal ──────────────────────────────────────────────
+  positions.set(focalPersonId, { x: 0, y: 0 })
+  layers.set(focalPersonId, 0)
+
   const focalSpouses = (focal.spouses || []).filter(id => peopleMap.has(id))
   focalSpouses.forEach((spouseId, i) => {
     positions.set(spouseId, { x: hSpacing * (i + 1), y: 0 })
-    included.add(spouseId)
+    layers.set(spouseId, 0)
   })
 
-  // Recurse upward for ancestors
-  placeAncestors(focalPersonId, 0, 0, generationsUp, hSpacing, vSpacing, peopleMap, positions, included)
+  // ── Layer -1: Parents ───────────────────────────────────────────
+  const parentIds = (focal.parents || []).filter(id => peopleMap.has(id))
+  // Spread parents symmetrically around the focal+spouse midpoint
+  const focalMidX = focalSpouses.length > 0 ? (hSpacing * focalSpouses.length) / 2 : 0
+  const parentSpread = hSpacing * 1.3
 
-  // Place spouses' parents too (one generation up)
-  for (const spouseId of focalSpouses) {
-    const spouseX = positions.get(spouseId)?.x ?? hSpacing
-    const spouse = peopleMap.get(spouseId)
-    if (spouse) {
-      placeAncestors(spouseId, spouseX, 0, Math.min(generationsUp, 1), hSpacing, vSpacing, peopleMap, positions, included)
+  if (parentIds.length === 1) {
+    positions.set(parentIds[0], { x: focalMidX, y: -vSpacing })
+    layers.set(parentIds[0], -1)
+  } else if (parentIds.length >= 2) {
+    positions.set(parentIds[0], { x: focalMidX - parentSpread / 2, y: -vSpacing })
+    positions.set(parentIds[1], { x: focalMidX + parentSpread / 2, y: -vSpacing })
+    layers.set(parentIds[0], -1)
+    layers.set(parentIds[1], -1)
+    // Any extra parents (rare) spread further right
+    for (let i = 2; i < parentIds.length; i++) {
+      positions.set(parentIds[i], { x: focalMidX + parentSpread / 2 + hSpacing * (i - 1), y: -vSpacing })
+      layers.set(parentIds[i], -1)
     }
   }
 
-  // Place siblings to the left of focal
-  const focalParents = focal.parents || []
-  const siblingIds = new Set()
-  for (const parentId of focalParents) {
+  // ── Layer -2: Grandparents ──────────────────────────────────────
+  // Always show grandparents (parents of parents)
+  const grandparentIds = new Set()
+  for (const parentId of parentIds) {
+    if (!positions.has(parentId)) continue
+    const parentPos = positions.get(parentId)
     const parent = peopleMap.get(parentId)
-    if (parent) {
-      for (const sibId of (parent.children || [])) {
-        if (sibId !== focalPersonId && !included.has(sibId)) {
-          siblingIds.add(sibId)
-        }
-      }
+    const gpIds = (parent?.parents || []).filter(id => peopleMap.has(id) && !positions.has(id))
+
+    const gpSpread = hSpacing * 0.95
+    if (gpIds.length === 1) {
+      positions.set(gpIds[0], { x: parentPos.x, y: -vSpacing * 2 })
+      layers.set(gpIds[0], -2)
+      grandparentIds.add(gpIds[0])
+    } else if (gpIds.length >= 2) {
+      positions.set(gpIds[0], { x: parentPos.x - gpSpread / 2, y: -vSpacing * 2 })
+      positions.set(gpIds[1], { x: parentPos.x + gpSpread / 2, y: -vSpacing * 2 })
+      layers.set(gpIds[0], -2)
+      layers.set(gpIds[1], -2)
+      grandparentIds.add(gpIds[0])
+      grandparentIds.add(gpIds[1])
     }
   }
-  let siblingOffset = -hSpacing
-  for (const sibId of siblingIds) {
-    positions.set(sibId, { x: siblingOffset, y: 0 })
-    included.add(sibId)
-    siblingOffset -= hSpacing
 
-    // Place sibling spouses
-    const sib = peopleMap.get(sibId)
-    if (sib) {
-      const sibSpouses = (sib.spouses || []).filter(id => peopleMap.has(id) && !included.has(id))
-      sibSpouses.forEach((spId, i) => {
-        positions.set(spId, { x: siblingOffset - hSpacing * i, y: 0 })
-        included.add(spId)
+  // ── Layer -3: Great-grandparents (only if a grandparent is expanded) ──
+  for (const gpId of grandparentIds) {
+    if (!expandedAncestors.has(gpId)) continue
+    const gpPos = positions.get(gpId)
+    const gp = peopleMap.get(gpId)
+    const ggpIds = (gp?.parents || []).filter(id => peopleMap.has(id) && !positions.has(id))
+
+    const ggpSpread = hSpacing * 0.75
+    if (ggpIds.length === 1) {
+      positions.set(ggpIds[0], { x: gpPos.x, y: -vSpacing * 3 })
+      layers.set(ggpIds[0], -3)
+    } else if (ggpIds.length >= 2) {
+      positions.set(ggpIds[0], { x: gpPos.x - ggpSpread / 2, y: -vSpacing * 3 })
+      positions.set(ggpIds[1], { x: gpPos.x + ggpSpread / 2, y: -vSpacing * 3 })
+      layers.set(ggpIds[0], -3)
+      layers.set(ggpIds[1], -3)
+    }
+  }
+
+  // ── Layer +1: Children ──────────────────────────────────────────
+  // Only the focal person's own children; center them under focal+spouse
+  const childIds = [...new Set(focal.children || [])].filter(id => peopleMap.has(id))
+  const spouseEndX = focalSpouses.length > 0 ? hSpacing * focalSpouses.length : 0
+  const childCenterX = (0 + spouseEndX) / 2
+
+  if (childIds.length > 0) {
+    const totalChildWidth = (childIds.length - 1) * hSpacing
+    const childStartX = childCenterX - totalChildWidth / 2
+    childIds.forEach((childId, i) => {
+      if (!positions.has(childId)) {
+        positions.set(childId, { x: childStartX + i * hSpacing, y: vSpacing })
+        layers.set(childId, 1)
+      }
+    })
+  }
+
+  // ── Layer +1 expansion: child's spouse & Layer +2: grandchildren ──
+  for (const childId of childIds) {
+    if (!positions.has(childId)) continue
+    if (!expandedDescendants.has(childId)) continue
+
+    const childPos = positions.get(childId)
+    const child = peopleMap.get(childId)
+
+    // Show child's spouse(s) to the right
+    const childSpouses = (child?.spouses || []).filter(id => peopleMap.has(id) && !positions.has(id))
+    childSpouses.forEach((spId, i) => {
+      positions.set(spId, { x: childPos.x + hSpacing * (i + 1), y: vSpacing })
+      layers.set(spId, 1)
+    })
+
+    // Show grandchildren below
+    const gcIds = [...new Set(child?.children || [])].filter(id => peopleMap.has(id) && !positions.has(id))
+    if (gcIds.length > 0) {
+      const childSpouseEndX = childSpouses.length > 0 ? childPos.x + hSpacing * childSpouses.length : childPos.x
+      const gcCenterX = (childPos.x + childSpouseEndX) / 2
+      const gcSpread = hSpacing * 0.85
+      const gcStartX = gcCenterX - ((gcIds.length - 1) * gcSpread) / 2
+      gcIds.forEach((gcId, i) => {
+        positions.set(gcId, { x: gcStartX + i * gcSpread, y: vSpacing * 2 })
+        layers.set(gcId, 2)
       })
     }
   }
 
-  // Place children and grandchildren
-  placeDescendants(focalPersonId, 0, generationsDown, hSpacing, vSpacing, peopleMap, positions, included)
-
-  return { positions, included }
-}
-
-function placeAncestors(personId, personX, personGeneration, maxGen, hSpacing, vSpacing, peopleMap, positions, included) {
-  if (personGeneration >= maxGen) return
-
-  const person = peopleMap.get(personId)
-  if (!person) return
-
-  const parentIds = (person.parents || []).filter(id => peopleMap.has(id))
-  if (parentIds.length === 0) return
-
-  const genUp = personGeneration + 1
-  const spread = hSpacing * Math.pow(1.5, genUp - 1)
-  const y = -vSpacing * genUp
-
-  if (parentIds.length === 1) {
-    const pid = parentIds[0]
-    if (!included.has(pid)) {
-      positions.set(pid, { x: personX, y })
-      included.add(pid)
-      placeAncestors(pid, personX, genUp, maxGen, hSpacing, vSpacing, peopleMap, positions, included)
-    }
-  } else if (parentIds.length >= 2) {
-    // Father left, mother right (or just spread them)
-    const xLeft = personX - spread / 2
-    const xRight = personX + spread / 2
-
-    const [pid0, pid1] = parentIds
-    if (!included.has(pid0)) {
-      positions.set(pid0, { x: xLeft, y })
-      included.add(pid0)
-      placeAncestors(pid0, xLeft, genUp, maxGen, hSpacing, vSpacing, peopleMap, positions, included)
-    }
-    if (!included.has(pid1)) {
-      positions.set(pid1, { x: xRight, y })
-      included.add(pid1)
-      placeAncestors(pid1, xRight, genUp, maxGen, hSpacing, vSpacing, peopleMap, positions, included)
-    }
-
-    // Extra parents if any
-    for (let i = 2; i < parentIds.length; i++) {
-      const pid = parentIds[i]
-      if (!included.has(pid)) {
-        positions.set(pid, { x: xRight + hSpacing * (i - 1), y })
-        included.add(pid)
-      }
-    }
-  }
-}
-
-function placeDescendants(personId, genDown, maxGen, hSpacing, vSpacing, peopleMap, positions, included) {
-  if (genDown >= maxGen) return
-
-  const person = peopleMap.get(personId)
-  if (!person) return
-
-  // Gather children from this person and their spouses
-  const childIds = [...new Set(person.children || [])]
-  if (childIds.length === 0) return
-
-  const personPos = positions.get(personId)
-  if (!personPos) return
-
-  // Find the rightmost spouse x to center children
-  const spouseXs = (person.spouses || [])
-    .filter(id => positions.has(id))
-    .map(id => positions.get(id).x)
-  const maxSpouseX = spouseXs.length > 0 ? Math.max(...spouseXs) : personPos.x
-  const centerX = (personPos.x + maxSpouseX) / 2
-
-  const newGenDown = genDown + 1
-  const y = vSpacing * newGenDown
-
-  const validChildren = childIds.filter(id => peopleMap.has(id))
-  const totalWidth = (validChildren.length - 1) * hSpacing
-  const startX = centerX - totalWidth / 2
-
-  validChildren.forEach((childId, i) => {
-    if (!included.has(childId)) {
-      const x = startX + i * hSpacing
-      positions.set(childId, { x, y })
-      included.add(childId)
-
-      // Place child's spouses
-      const child = peopleMap.get(childId)
-      if (child) {
-        const childSpouses = (child.spouses || []).filter(id => peopleMap.has(id) && !included.has(id))
-        childSpouses.forEach((spId, si) => {
-          positions.set(spId, { x: x + hSpacing * (si + 1), y })
-          included.add(spId)
-        })
-      }
-    }
-    placeDescendants(childId, newGenDown, maxGen, hSpacing, vSpacing, peopleMap, positions, included)
-  })
+  return { positions, layers }
 }
 
 export function computeEdges(positions, peopleMap) {
   const edges = []
   const edgeSet = new Set()
 
-  const NODE_W = 160
-  const NODE_H = 90
+  const NODE_W = 150
+  const NODE_H = 72
 
   for (const [personId, pos] of positions) {
     const person = peopleMap.get(personId)
     if (!person) continue
 
-    // Parent-child edges: from bottom-center of parent to top-center of child
+    // Parent → child edges (only draw when both are in the layout)
     for (const childId of (person.children || [])) {
       if (!positions.has(childId)) continue
 
-      const edgeKey = [personId, childId].sort().join('-')
-      if (edgeSet.has(edgeKey)) continue
-      edgeSet.add(edgeKey)
+      const key = `pc-${[personId, childId].sort().join('-')}`
+      if (edgeSet.has(key)) continue
+      edgeSet.add(key)
 
       const childPos = positions.get(childId)
-      const x1 = pos.x + NODE_W / 2
-      const y1 = pos.y + NODE_H
-      const x2 = childPos.x + NODE_W / 2
-      const y2 = childPos.y
-
       edges.push({
-        id: `${personId}-${childId}`,
+        id: key,
         type: 'parent-child',
-        x1, y1, x2, y2,
+        x1: pos.x + NODE_W / 2,
+        y1: pos.y + NODE_H,
+        x2: childPos.x + NODE_W / 2,
+        y2: childPos.y,
         sourceId: personId,
         targetId: childId,
       })
     }
 
-    // Spouse edges: horizontal line between spouses
+    // Spouse edges (only when both are in the layout)
     for (const spouseId of (person.spouses || [])) {
       if (!positions.has(spouseId)) continue
-      if (personId > spouseId) continue // avoid duplicates
+      if (personId > spouseId) continue  // avoid duplicates
+
+      const key = `sp-${[personId, spouseId].sort().join('-')}`
+      if (edgeSet.has(key)) continue
+      edgeSet.add(key)
 
       const spousePos = positions.get(spouseId)
-      const edgeKey = `spouse-${[personId, spouseId].sort().join('-')}`
-      if (edgeSet.has(edgeKey)) continue
-      edgeSet.add(edgeKey)
-
-      const leftPos = pos.x < spousePos.x ? pos : spousePos
+      const leftPos  = pos.x < spousePos.x ? pos : spousePos
       const rightPos = pos.x < spousePos.x ? spousePos : pos
-      const leftId = pos.x < spousePos.x ? personId : spouseId
-      const rightId = pos.x < spousePos.x ? spouseId : personId
 
       edges.push({
-        id: `spouse-${personId}-${spouseId}`,
+        id: key,
         type: 'spouse',
         x1: leftPos.x + NODE_W,
         y1: leftPos.y + NODE_H / 2,
         x2: rightPos.x,
         y2: rightPos.y + NODE_H / 2,
-        sourceId: leftId,
-        targetId: rightId,
+        sourceId: personId,
+        targetId: spouseId,
       })
     }
   }
 
   return edges
+}
+
+/**
+ * Given a personId and the focal person, return a short relationship label.
+ */
+export function getRelationLabel(personId, focalPersonId, peopleMap) {
+  if (personId === focalPersonId) return null
+  const focal = peopleMap.get(focalPersonId)
+  if (!focal) return null
+  const p = peopleMap.get(personId)
+  if (!p) return null
+
+  // Spouse
+  if ((focal.spouses || []).includes(personId)) {
+    return p.gender === 'F' ? 'Wife' : 'Husband'
+  }
+  // Parent
+  if ((focal.parents || []).includes(personId)) {
+    return p.gender === 'F' ? 'Mother' : 'Father'
+  }
+  // Child
+  if ((focal.children || []).includes(personId)) {
+    return p.gender === 'F' ? 'Daughter' : 'Son'
+  }
+  // Grandparent
+  for (const parentId of (focal.parents || [])) {
+    const parent = peopleMap.get(parentId)
+    if ((parent?.parents || []).includes(personId)) {
+      return p.gender === 'F' ? 'Grandmother' : 'Grandfather'
+    }
+  }
+  // Great-grandparent
+  for (const parentId of (focal.parents || [])) {
+    const parent = peopleMap.get(parentId)
+    for (const gpId of (parent?.parents || [])) {
+      const gp = peopleMap.get(gpId)
+      if ((gp?.parents || []).includes(personId)) {
+        return p.gender === 'F' ? 'Great-Grandmother' : 'Great-Grandfather'
+      }
+    }
+  }
+  // Grandchild / child's spouse
+  for (const childId of (focal.children || [])) {
+    const child = peopleMap.get(childId)
+    if ((child?.children || []).includes(personId)) {
+      return p.gender === 'F' ? 'Granddaughter' : 'Grandson'
+    }
+    if ((child?.spouses || []).includes(personId)) {
+      return "Child's Spouse"
+    }
+  }
+  return null
 }
