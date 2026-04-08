@@ -36,10 +36,11 @@ function RelationCard({ personId }) {
 
 function RelationGroup({ label, ids, emptyText }) {
   if (!ids || ids.length === 0) {
+    if (!emptyText) return null
     return (
       <div className="relation-group">
         <div className="relation-group-label">{label}</div>
-        <p className="relation-empty">{emptyText || 'No record'}</p>
+        <p className="relation-empty">{emptyText}</p>
       </div>
     )
   }
@@ -55,26 +56,40 @@ function RelationGroup({ label, ids, emptyText }) {
 }
 
 export default function RelationshipsSection({ person }) {
-  const { getPerson } = useFamilyContext()
+  const { getPerson, getFamily } = useFamilyContext()
 
   // Determine father/mother from parents array
   const parentObjects = (person.parents || []).map(id => getPerson(id)).filter(Boolean)
   const fatherId = parentObjects.find(p => p.gender === 'M')?.id ?? null
   const motherId = parentObjects.find(p => p.gender === 'F')?.id ?? null
-
-  // Any additional parents (non-binary or ambiguous gender)
   const otherParentIds = parentObjects
     .filter(p => p.id !== fatherId && p.id !== motherId)
     .map(p => p.id)
 
+  // Siblings from getFamily (derived via shared parents)
+  const family = getFamily(person.id)
+  const siblingIds = family.siblings.map(s => s.id)
+
+  const spouseLabel =
+    (person.spouses?.length ?? 0) > 1
+      ? 'Spouses'
+      : person.gender === 'F'
+      ? 'Husband'
+      : 'Wife'
+
+  const childLabel =
+    (person.children?.length ?? 0) > 0
+      ? `Children (${person.children.length})`
+      : 'Children'
+
   return (
     <section className="profile-section">
-      <h2 className="profile-section-title">
+      <h2 className="profile-section-title" style={{ marginBottom: '1.25rem' }}>
         <span className="profile-section-icon">♦</span>
-        Family Relationships
+        Family
       </h2>
 
-      <div className="relationships-grid">
+      <div className="relationships-list">
         <RelationGroup
           label="Father"
           ids={fatherId ? [fatherId] : []}
@@ -88,29 +103,27 @@ export default function RelationshipsSection({ person }) {
         />
 
         {otherParentIds.length > 0 && (
-          <RelationGroup
-            label="Parent"
-            ids={otherParentIds}
-          />
+          <RelationGroup label="Parent" ids={otherParentIds} />
         )}
 
         <RelationGroup
-          label={
-            person.spouses?.length > 1
-              ? 'Spouses'
-              : person.gender === 'F'
-              ? 'Husband'
-              : 'Wife'
-          }
+          label={spouseLabel}
           ids={person.spouses || []}
           emptyText="No spouse recorded"
         />
 
         <RelationGroup
-          label={`Children${person.children?.length > 0 ? ` (${person.children.length})` : ''}`}
+          label={childLabel}
           ids={person.children || []}
           emptyText="No children recorded"
         />
+
+        {siblingIds.length > 0 && (
+          <RelationGroup
+            label={`Siblings (${siblingIds.length})`}
+            ids={siblingIds}
+          />
+        )}
       </div>
     </section>
   )

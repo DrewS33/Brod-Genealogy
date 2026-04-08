@@ -93,7 +93,11 @@ export default function BiographySection({ person }) {
       ) : (
         <div className="bio-content">
           {bio ? (
-            <p className="bio-text">{bio}</p>
+            <div className="bio-text">
+              {bio.split(/\n\n+/).map((para, i) => (
+                <p key={i} style={{ marginBottom: '0.9em' }}>{para.trim()}</p>
+              ))}
+            </div>
           ) : (
             <p className="bio-empty">
               No biography has been written yet.{' '}

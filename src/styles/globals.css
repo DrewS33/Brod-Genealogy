@@ -3525,8 +3525,8 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 1.75rem;
   }
 
-  .relationships-grid {
-    grid-template-columns: 1fr;
+  .relationships-list {
+    gap: 1rem;
   }
 }
 
@@ -3557,4 +3557,61 @@ h1, h2, h3, h4, h5, h6 {
   .story-form-row {
     flex-direction: column;
   }
+}
+
+/* ── Relationships list (single-column for sidebar) ─────────── */
+.relationships-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* ── Approval badges ─────────────────────────────────────────── */
+.approval-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.approval-badge--pending {
+  background: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #FDE68A;
+}
+
+.approval-badge--rejected {
+  background: #FEE2E2;
+  color: #991B1B;
+  border: 1px solid #FECACA;
+}
+
+/* Pending story card — subtle warm tint */
+.story-card--pending {
+  border-color: #FDE68A;
+  background: #FFFBEB;
+}
+
+/* Pending media card */
+.media-card--pending {
+  border-color: #FDE68A;
+}
+
+/* ── Profile header accent bar ───────────────────────────────── */
+.profile-header::before {
+  content: '';
+  display: block;
+  height: 4px;
+  background: linear-gradient(90deg, var(--forest-800) 0%, var(--gold-500) 50%, var(--forest-800) 100%);
+}
+
+/* ── Bio last-paragraph no bottom margin ─────────────────────── */
+.bio-text p:last-child {
+  margin-bottom: 0;
 }

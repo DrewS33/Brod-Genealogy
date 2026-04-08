@@ -47,15 +47,15 @@ export default function PersonPage() {
 
         <div className="person-page-body">
 
-          {/* ── Left column: relationships + biography ─────────── */}
+          {/* ── Left column: biography + stories ───────────────── */}
           <div className="person-page-main">
-            <RelationshipsSection person={person} />
             <BiographySection person={person} />
+            <StoriesSection person={person} />
           </div>
 
-          {/* ── Right column: stories + archive ────────────────── */}
+          {/* ── Right column: relationships + archive ──────────── */}
           <div className="person-page-sidebar">
-            <StoriesSection person={person} />
+            <RelationshipsSection person={person} />
             <MediaArchive person={person} />
           </div>
 

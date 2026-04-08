@@ -58,12 +58,19 @@ function MediaCard({ item, onEdit, onDelete }) {
     setEditingTags(false)
   }
 
+  const isPending = item.approvalStatus === 'pending'
+
   return (
-    <div className="media-card">
-      {/* Type badge */}
+    <div className={`media-card${isPending ? ' media-card--pending' : ''}`}>
+      {/* Type badge + approval */}
       <div className="media-card-type" style={{ color: cfg.color }}>
         <cfg.Icon />
         <span>{cfg.label.slice(0, -1)}</span>
+        {isPending && (
+          <span className="approval-badge approval-badge--pending" style={{ marginLeft: 'auto' }}>
+            Pending
+          </span>
+        )}
       </div>
 
       {/* Thumbnail placeholder */}

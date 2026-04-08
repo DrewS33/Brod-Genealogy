@@ -18,11 +18,25 @@ function StoryCard({ story, onEdit, onDelete }) {
   const [expanded, setExpanded] = useState(false)
   const preview = story.content.slice(0, 260)
   const isLong = story.content.length > 260
+  const isPending = story.approvalStatus === 'pending'
+  const isRejected = story.approvalStatus === 'rejected'
 
   return (
-    <article className="story-card">
+    <article className={`story-card${isPending ? ' story-card--pending' : ''}`}>
       <div className="story-card-header">
-        <h3 className="story-card-title">{story.title}</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: 0 }}>
+          <h3 className="story-card-title">{story.title}</h3>
+          {isPending && (
+            <span className="approval-badge approval-badge--pending" title="This story is awaiting review before publication">
+              Pending Review
+            </span>
+          )}
+          {isRejected && (
+            <span className="approval-badge approval-badge--rejected" title="This story was not approved for the archive">
+              Not Approved
+            </span>
+          )}
+        </div>
         <div className="story-card-actions">
           <button
             className="story-action-btn"

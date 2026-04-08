@@ -19,6 +19,7 @@ William said he stayed on deck, lashing himself to a rail and watching the waves
     authorNote: 'As told to his son Robert, transcribed 1893',
     date: '1893-01-01',
     tags: ['immigration', 'sea voyage', 'family legend', 'William'],
+    approvalStatus: 'approved',
   },
   {
     id: 'S002',
@@ -31,6 +32,7 @@ He filled six notebooks in those two sleepless days. The reconstructed ledger, s
     authorNote: 'From Mary Ann\'s letter to her sister, dated February 1858',
     date: '1858-02-01',
     tags: ['business', 'fire', 'resilience', 'Boston', 'Brod & Sons'],
+    approvalStatus: 'approved',
   },
   {
     id: 'S003',
@@ -45,6 +47,7 @@ He ultimately guided First National through the crisis without a single bank fai
     authorNote: 'Written by George\'s daughter after reading his private journals',
     date: '1945-03-15',
     tags: ['Great Depression', 'banking', 'leadership', 'private journal'],
+    approvalStatus: 'approved',
   },
   {
     id: 'S004',
@@ -57,6 +60,7 @@ The children were not required to attend but almost always did. Charles later sa
     authorNote: 'From Charles Brod\'s unpublished memoir draft, c. 1960',
     date: '1960-01-01',
     tags: ['family life', 'music', 'Sunday', 'childhood memory', 'Commonwealth Avenue'],
+    approvalStatus: 'approved',
   },
   {
     id: 'S005',
@@ -69,6 +73,7 @@ What I remember most from childhood is the food. Christmas at the Brod house mea
     authorNote: 'Contributed to the family archive, 2019',
     date: '2019-05-10',
     tags: ['childhood', 'family culture', 'food', 'multicultural', 'memory'],
+    approvalStatus: 'approved',
   },
   {
     id: 'S006',
@@ -81,12 +86,47 @@ The opening page bears an inscription in her handwriting: "Für meine Kinder und
     authorNote: 'Catalog entry, Family Archive Collection',
     date: '2010-06-01',
     tags: ['recipe book', 'German heritage', 'artifact', 'Clara', 'family heirloom'],
+    approvalStatus: 'approved',
+  },
+  {
+    id: 'S007',
+    personId: 'P013',
+    title: 'The Courthouse Steps, 1948',
+    content: `My father, Charles Brod, rarely spoke about his work at the dinner table. He believed that a case was either won or pending, and neither state warranted dinner-table discussion. But the Legal Aid case of Kowalski v. City of Boston was an exception.
+
+He had taken the case pro bono — a Polish immigrant family facing eviction from a South End tenement that the city wanted demolished for a highway project. The legal argument was novel: that the city's taking violated not just property rights but the constitutional right to an established home. The courts had not heard that argument before.
+
+I was fourteen the day the ruling came down. He came home early, something he never did, and sat at the kitchen table with his hands folded. My mother asked what was wrong. He said, "Nothing is wrong. We won." He did not smile. He simply unfolded his hands and asked what was for dinner.
+
+He won because he was right. That is the only explanation he would ever offer.`,
+    author: 'Richard Brod',
+    authorNote: 'From Richard Brod\'s memoir notes, compiled 1978',
+    date: '1978-01-01',
+    tags: ['law', 'civil rights', 'Legal Aid', 'Boston', 'family memory'],
+    approvalStatus: 'approved',
+  },
+  {
+    id: 'S008',
+    personId: 'P013',
+    title: 'King\'s Chapel, June 1927',
+    content: `I found a photograph last spring while sorting through the boxes Richard left us. It shows the steps of King's Chapel on a June afternoon in 1927 — the day Charles and Eleanor were married. Charles is in a morning coat, Eleanor in ivory lace. They are not looking at the camera. They are looking at each other with an expression I can only describe as mutual recognition.
+
+There are perhaps thirty guests visible in the photograph, spilling onto Tremont Street. I recognize George and Agnes in the foreground — George with his banker's posture, Agnes with a corsage. Behind them, a small woman in a dark dress: I think this is Lillian, Charles's sister, the one who never married and taught at Girls' Latin for thirty years.
+
+What strikes me most is how young they all are. Charles was twenty-seven. Eleanor twenty-five. George and Agnes, their parents, are in their mid-fifties but look older in the photograph's formal gray.
+
+The family they founded together lasted — is still lasting, through this archive, through us.`,
+    author: 'The Archive',
+    authorNote: 'Contributed to the family archive by a family member, 2021',
+    date: '2021-06-10',
+    tags: ['wedding', 'King\'s Chapel', '1927', 'photograph', 'family memory'],
+    approvalStatus: 'pending',
   },
 ]
 
 // ── UPLOADS ─────────────────────────────────────────────────
 // type: 'picture' | 'video' | 'document'
-// Tags are freeform for flexible filtering.
+// approvalStatus: 'approved' | 'pending' | 'rejected'
 export const UPLOADS = [
   {
     id: 'U001',
@@ -99,6 +139,7 @@ export const UPLOADS = [
     tags: ['immigration', 'primary source', 'ship record', '1847'],
     uploadedBy: 'Archive Admin',
     uploadDate: '2018-04-15',
+    approvalStatus: 'approved',
   },
   {
     id: 'U002',
@@ -111,6 +152,7 @@ export const UPLOADS = [
     tags: ['business', 'legal document', '1850', 'primary source'],
     uploadedBy: 'Archive Admin',
     uploadDate: '2018-04-15',
+    approvalStatus: 'approved',
   },
   {
     id: 'U003',
@@ -123,6 +165,7 @@ export const UPLOADS = [
     tags: ['portrait', 'Civil War era', 'studio photograph', 'c.1865'],
     uploadedBy: 'Archive Admin',
     uploadDate: '2018-04-15',
+    approvalStatus: 'approved',
   },
   {
     id: 'U004',
@@ -135,6 +178,7 @@ export const UPLOADS = [
     tags: ['portrait', 'oil painting', 'banking', '1920s'],
     uploadedBy: 'Archive Admin',
     uploadDate: '2019-02-10',
+    approvalStatus: 'approved',
   },
   {
     id: 'U005',
@@ -147,6 +191,7 @@ export const UPLOADS = [
     tags: ['wedding', 'portrait', '1898', 'Agnes', 'George'],
     uploadedBy: 'Eleanor Brod-Morrison',
     uploadDate: '2019-02-10',
+    approvalStatus: 'approved',
   },
   {
     id: 'U006',
@@ -159,6 +204,7 @@ export const UPLOADS = [
     tags: ['journal', 'Great Depression', 'private', 'primary source'],
     uploadedBy: 'Eleanor Brod-Morrison',
     uploadDate: '2019-02-10',
+    approvalStatus: 'approved',
   },
   {
     id: 'U007',
@@ -171,6 +217,7 @@ export const UPLOADS = [
     tags: ['interview', 'oral history', 'Harvard', '1940', 'film'],
     uploadedBy: 'Charles Brod III',
     uploadDate: '2021-09-01',
+    approvalStatus: 'approved',
   },
   {
     id: 'U008',
@@ -183,6 +230,7 @@ export const UPLOADS = [
     tags: ['recipe book', 'German', 'artifact', 'primary source', 'food'],
     uploadedBy: 'Archive Admin',
     uploadDate: '2018-06-01',
+    approvalStatus: 'approved',
   },
   {
     id: 'U009',
@@ -195,6 +243,7 @@ export const UPLOADS = [
     tags: ['portrait', 'studio photograph', 'c.1880', 'piano'],
     uploadedBy: 'Archive Admin',
     uploadDate: '2018-06-01',
+    approvalStatus: 'approved',
   },
   {
     id: 'U010',
@@ -207,6 +256,7 @@ export const UPLOADS = [
     tags: ['family gathering', 'reunion', '1955', 'group photo', 'Beacon Hill'],
     uploadedBy: 'Archive Admin',
     uploadDate: '2020-01-15',
+    approvalStatus: 'approved',
   },
   {
     id: 'U011',
@@ -219,5 +269,32 @@ export const UPLOADS = [
     tags: ['home movie', 'Cape Cod', '1962', 'family gathering', 'summer'],
     uploadedBy: 'Charles Brod III',
     uploadDate: '2021-09-01',
+    approvalStatus: 'approved',
+  },
+  {
+    id: 'U012',
+    personId: 'P013',
+    type: 'document',
+    title: 'Harvard Law Oral History — Charles Brod (1965)',
+    description: 'Transcribed text of Charles Brod\'s oral history interview recorded by the Harvard Law School Archives in 1965. Covers his career from 1926 to the founding of the Boston Legal Aid Society.',
+    url: null,
+    thumbnailUrl: null,
+    tags: ['oral history', 'law', 'Harvard', '1965', 'primary source'],
+    uploadedBy: 'Archive Admin',
+    uploadDate: '2019-11-01',
+    approvalStatus: 'approved',
+  },
+  {
+    id: 'U013',
+    personId: 'P013',
+    type: 'picture',
+    title: 'Charles Brod — King\'s Chapel Wedding, 1927',
+    description: 'A photograph contributed by a family member showing Charles and Eleanor on the steps of King\'s Chapel on their wedding day, June 10, 1927. Identifications pending verification.',
+    url: null,
+    thumbnailUrl: null,
+    tags: ['wedding', 'portrait', '1927', 'King\'s Chapel'],
+    uploadedBy: 'Family Contribution',
+    uploadDate: '2021-06-10',
+    approvalStatus: 'pending',
   },
 ]

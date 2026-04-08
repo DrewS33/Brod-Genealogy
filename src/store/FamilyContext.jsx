@@ -75,6 +75,7 @@ export function FamilyProvider({ children }) {
     const newStory = {
       id: `S${Date.now()}`,
       uploadDate: new Date().toISOString().slice(0, 10),
+      approvalStatus: 'pending',
       ...story,
     }
     setStories(prev => [newStory, ...prev])
@@ -99,6 +100,7 @@ export function FamilyProvider({ children }) {
     const newUpload = {
       id: `U${Date.now()}`,
       uploadDate: new Date().toISOString().slice(0, 10),
+      approvalStatus: 'pending',
       ...upload,
     }
     setUploads(prev => [newUpload, ...prev])

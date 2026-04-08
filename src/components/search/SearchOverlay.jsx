@@ -7,7 +7,7 @@ export default function SearchOverlay({ isOpen, onClose }) {
   const [focusedIndex, setFocusedIndex] = useState(-1)
   const inputRef = useRef(null)
   const navigate = useNavigate()
-  const { searchQuery, setSearchQuery, searchResults, setSelectedPersonId } = useFamilyContext()
+  const { searchQuery, setSearchQuery, searchResults, setSelectedPersonId, people } = useFamilyContext()
 
   // Focus input when opened
   useEffect(() => {
@@ -116,7 +116,7 @@ export default function SearchOverlay({ isOpen, onClose }) {
 
           {searchQuery.trim().length < 2 && (
             <div className="search-results-empty">
-              Start typing to search 29 family members…
+              Start typing to search {people.size} family members…
             </div>
           )}
         </div>
