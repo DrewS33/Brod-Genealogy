@@ -43,7 +43,7 @@ export default function SearchOverlay({ isOpen, onClose }) {
   }, [handleKeyDown])
 
   const handleSelect = (person) => {
-    navigate(`/tree/${person.id}`)
+    navigate(`/person/${person.id}`)
     setSelectedPersonId(person.id)
     onClose()
   }

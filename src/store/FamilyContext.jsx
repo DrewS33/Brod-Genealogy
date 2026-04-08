@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useMemo } from 'react'
 import { PEOPLE } from '../data/sampleData.js'
+import { STORIES, UPLOADS } from '../data/profileData.js'
 
 const FamilyContext = createContext(null)
 
@@ -14,6 +15,15 @@ export function FamilyProvider({ children }) {
   const [selectedPersonId, setSelectedPersonId] = useState(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+
+  // Mutable bios — keyed by personId. Overrides the base bio from sampleData.
+  const [bioOverrides, setBioOverrides] = useState({})
+
+  // Mutable stories — seeded from profileData.js
+  const [stories, setStories] = useState(STORIES)
+
+  // Mutable uploads — seeded from profileData.js
+  const [uploads, setUploads] = useState(UPLOADS)
 
   // Build people Map from array
   const people = useMemo(() => {
@@ -45,6 +55,64 @@ export function FamilyProvider({ children }) {
     const siblings = Array.from(siblingIds).map(getPerson).filter(Boolean)
 
     return { parents, spouses, children, siblings }
+  }
+
+  // ── Bio editing ─────────────────────────────────────────
+  const updateBio = (personId, newBio) => {
+    setBioOverrides(prev => ({ ...prev, [personId]: newBio }))
+  }
+
+  const getPersonBio = (personId) => {
+    if (bioOverrides[personId] !== undefined) return bioOverrides[personId]
+    return getPerson(personId)?.bio || ''
+  }
+
+  // ── Stories ─────────────────────────────────────────────
+  const getStoriesForPerson = (personId) =>
+    stories.filter(s => s.personId === personId)
+
+  const addStory = (story) => {
+    const newStory = {
+      id: `S${Date.now()}`,
+      uploadDate: new Date().toISOString().slice(0, 10),
+      ...story,
+    }
+    setStories(prev => [newStory, ...prev])
+    return newStory
+  }
+
+  const updateStory = (storyId, changes) => {
+    setStories(prev =>
+      prev.map(s => (s.id === storyId ? { ...s, ...changes } : s))
+    )
+  }
+
+  const deleteStory = (storyId) => {
+    setStories(prev => prev.filter(s => s.id !== storyId))
+  }
+
+  // ── Uploads ─────────────────────────────────────────────
+  const getUploadsForPerson = (personId) =>
+    uploads.filter(u => u.personId === personId)
+
+  const addUpload = (upload) => {
+    const newUpload = {
+      id: `U${Date.now()}`,
+      uploadDate: new Date().toISOString().slice(0, 10),
+      ...upload,
+    }
+    setUploads(prev => [newUpload, ...prev])
+    return newUpload
+  }
+
+  const updateUpload = (uploadId, changes) => {
+    setUploads(prev =>
+      prev.map(u => (u.id === uploadId ? { ...u, ...changes } : u))
+    )
+  }
+
+  const deleteUpload = (uploadId) => {
+    setUploads(prev => prev.filter(u => u.id !== uploadId))
   }
 
   // Search results
@@ -92,6 +160,19 @@ export function FamilyProvider({ children }) {
     searchResults,
     getPerson,
     getFamily,
+    // bio
+    getPersonBio,
+    updateBio,
+    // stories
+    getStoriesForPerson,
+    addStory,
+    updateStory,
+    deleteStory,
+    // uploads
+    getUploadsForPerson,
+    addUpload,
+    updateUpload,
+    deleteUpload,
   }
 
   return (

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useFamilyContext } from '../../store/FamilyContext.jsx'
 import { getAvatarDataUri, formatLifespan, formatFullDate, getEventIcon, getAge } from '../../utils/formatters.js'
 
@@ -193,6 +194,7 @@ function TimelineTab({ person }) {
 
 export default function PersonPanel({ selectedPersonId, onClose }) {
   const [activeTab, setActiveTab] = useState('overview')
+  const navigate = useNavigate()
   const { getPerson, setFocalPersonId, setSelectedPersonId } = useFamilyContext()
 
   const person = getPerson(selectedPersonId)
@@ -248,17 +250,20 @@ export default function PersonPanel({ selectedPersonId, onClose }) {
               className="btn btn-primary btn-sm"
               style={{ flex: 1 }}
               onClick={() => {
-                setFocalPersonId(selectedPersonId)
-                onClose()
+                navigate(`/person/${selectedPersonId}`)
               }}
             >
-              Center in Tree
+              View Full Profile
             </button>
             <button
               className="btn btn-ghost btn-sm"
-              onClick={onClose}
+              onClick={() => {
+                setFocalPersonId(selectedPersonId)
+                onClose()
+              }}
+              title="Center this person in the tree"
             >
-              Close
+              ⊕ Center
             </button>
           </div>
         </>
