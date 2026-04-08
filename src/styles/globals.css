@@ -3615,3 +3615,102 @@ h1, h2, h3, h4, h5, h6 {
 .bio-text p:last-child {
   margin-bottom: 0;
 }
+
+/* ── Life events header with edit toggle ─────────────────────── */
+.bio-events-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+/* Active state for "Done" button */
+.profile-edit-btn--active {
+  background: var(--forest-800);
+  border-color: var(--forest-800);
+  color: white;
+}
+.profile-edit-btn--active:hover {
+  background: var(--forest-700);
+  border-color: var(--forest-700);
+  color: white;
+}
+
+/* Editable event row — shows actions on hover */
+.bio-event-row--editable .bio-event-actions {
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+.bio-event-row--editable:hover .bio-event-actions {
+  opacity: 1;
+}
+
+.bio-event-actions {
+  display: flex;
+  gap: 0.2rem;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.event-action-btn {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--parchment-100);
+  border: 1px solid var(--parchment-300);
+  border-radius: var(--radius-sm);
+  color: var(--stone-500);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.event-action-btn:hover {
+  background: var(--cream);
+  color: var(--forest-700);
+  border-color: var(--forest-700);
+}
+.event-action-btn--delete:hover {
+  color: #c0392b;
+  border-color: #c0392b;
+  background: #fdf2f2;
+}
+
+/* Inline event edit form */
+.event-form {
+  background: var(--parchment);
+  border: 1px solid var(--parchment-300);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.125rem;
+}
+
+.event-form-row {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.event-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  flex: 1;
+  min-width: 120px;
+  margin-bottom: 0.75rem;
+}
+
+/* Add event form container */
+.event-add-form {
+  margin-bottom: 1.25rem;
+  border-left: 3px solid var(--gold-500);
+  padding-left: 0.75rem;
+}
+
+/* Editing row highlight */
+.bio-event-row--editing {
+  background: var(--parchment);
+  border-radius: var(--radius-md);
+  margin-left: -0.5rem;
+  padding-left: 0.5rem;
+}

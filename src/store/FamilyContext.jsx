@@ -19,6 +19,9 @@ export function FamilyProvider({ children }) {
   // Mutable bios — keyed by personId. Overrides the base bio from sampleData.
   const [bioOverrides, setBioOverrides] = useState({})
 
+  // Mutable events — keyed by personId. Overrides the base events from sampleData.
+  const [eventOverrides, setEventOverrides] = useState({})
+
   // Mutable stories — seeded from profileData.js
   const [stories, setStories] = useState(STORIES)
 
@@ -65,6 +68,33 @@ export function FamilyProvider({ children }) {
   const getPersonBio = (personId) => {
     if (bioOverrides[personId] !== undefined) return bioOverrides[personId]
     return getPerson(personId)?.bio || ''
+  }
+
+  // ── Life events ─────────────────────────────────────────
+  const getPersonEvents = (personId) => {
+    if (eventOverrides[personId] !== undefined) return eventOverrides[personId]
+    return getPerson(personId)?.events || []
+  }
+
+  const updatePersonEvents = (personId, newEvents) => {
+    setEventOverrides(prev => ({ ...prev, [personId]: newEvents }))
+  }
+
+  const addEvent = (personId, event) => {
+    const current = getPersonEvents(personId)
+    const newEvent = { ...event, _id: `EV${Date.now()}` }
+    updatePersonEvents(personId, [...current, newEvent])
+  }
+
+  const updateEvent = (personId, eventIndex, changes) => {
+    const current = getPersonEvents(personId)
+    const updated = current.map((ev, i) => i === eventIndex ? { ...ev, ...changes } : ev)
+    updatePersonEvents(personId, updated)
+  }
+
+  const deleteEvent = (personId, eventIndex) => {
+    const current = getPersonEvents(personId)
+    updatePersonEvents(personId, current.filter((_, i) => i !== eventIndex))
   }
 
   // ── Stories ─────────────────────────────────────────────
@@ -165,6 +195,11 @@ export function FamilyProvider({ children }) {
     // bio
     getPersonBio,
     updateBio,
+    // events
+    getPersonEvents,
+    addEvent,
+    updateEvent,
+    deleteEvent,
     // stories
     getStoriesForPerson,
     addStory,
