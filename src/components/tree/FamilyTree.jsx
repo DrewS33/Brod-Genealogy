@@ -73,7 +73,7 @@ export default function FamilyTree({ focalPersonId, onPersonSelect, selectedPers
     return { positions: pos, layers: lay, routes: rts }
   }, [focalPersonId, people, expandedAncestors, expandedDescendants])
 
-  // ── D3 zoom & initial centering ─────────────────────────────────────────
+  // ── D3 zoom setup — runs once on mount ──────────────────────────────────
   useEffect(() => {
     if (!svgRef.current || !gRef.current) return
     const svg = select(svgRef.current)
@@ -86,20 +86,22 @@ export default function FamilyTree({ focalPersonId, onPersonSelect, selectedPers
     zoomRef.current = zoomBehavior
     svg.call(zoomBehavior).on('dblclick.zoom', null)
 
-    // Center the focal person card in the viewport
-    const focalPos = positions.get(focalPersonId)
-    if (focalPos && svgRef.current) {
-      const rect = svgRef.current.getBoundingClientRect()
-      const w = rect.width  || 900
-      const h = rect.height || 600
-      const t = zoomIdentity
-        .translate(w / 2 - focalPos.x - NODE_W / 2, h / 2 - focalPos.y - NODE_H / 2)
-        .scale(0.92)
-      svg.call(zoomBehavior.transform, t)
-    }
-
     return () => { svg.on('.zoom', null) }
-  }, [focalPersonId, positions])
+  }, [])  // empty deps — only runs on mount/unmount
+
+  // ── Center on focal person — only when focal person changes ──────────────
+  // Focal person is always at (0, 0) in layout coordinates, so positions is
+  // not needed here. Expanding nodes must NOT trigger this.
+  useEffect(() => {
+    if (!svgRef.current || !zoomRef.current) return
+    const rect = svgRef.current.getBoundingClientRect()
+    const w = rect.width  || 900
+    const h = rect.height || 600
+    const t = zoomIdentity
+      .translate(w / 2 - NODE_W / 2, h / 2 - NODE_H / 2)
+      .scale(0.92)
+    select(svgRef.current).call(zoomRef.current.transform, t)
+  }, [focalPersonId])  // only re-centers on focal change, never on expand
 
   // ── Zoom control handlers ────────────────────────────────────────────────
   const handleZoomIn = useCallback(() => {
