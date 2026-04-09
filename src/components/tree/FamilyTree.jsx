@@ -125,17 +125,44 @@ export default function FamilyTree({ focalPersonId, onPersonSelect, selectedPers
     select(svgRef.current).transition().duration(500).call(zoomRef.current.transform, t)
   }, [focalPersonId, positions])
 
+  // ── Edge highlight — edges attached to the selected person get emphasis ──
+  const highlightedEdgeIds = useMemo(() => {
+    if (!selectedPersonId) return new Set()
+    return new Set(
+      edges
+        .filter(e => e.sourceId === selectedPersonId || e.targetId === selectedPersonId)
+        .map(e => e.id)
+    )
+  }, [selectedPersonId, edges])
+
   // ── Edge path builder ────────────────────────────────────────────────────
+  // Orthogonal routing: all turns are 90°, corners are lightly rounded (r=5).
+  // This makes relationships faster to trace than freeform curves.
   const getEdgePath = edge => {
+    const { x1, y1, x2, y2 } = edge
+
     if (edge.type === 'parent-child') {
-      // Horizontal S-curve: child's right edge → parent's left edge
-      const midX = (edge.x1 + edge.x2) / 2
-      // Start at child right edge (x2, y2), end at parent left edge (x1, y1)
-      return `M ${edge.x2} ${edge.y2} C ${midX} ${edge.y2}, ${midX} ${edge.y1}, ${edge.x1} ${edge.y1}`
+      // Horizontal layout: child RIGHT edge (x2) → parent LEFT edge (x1), where x1 > x2.
+      // Route: [child right] ─── midX ⌐ vertical ⌐ midX ─── [parent left]
+      if (Math.abs(y1 - y2) < 3) {
+        // Same row — simple straight horizontal
+        return `M ${x2} ${y2} H ${x1}`
+      }
+      const midX = (x1 + x2) / 2
+      const r    = 5  // corner rounding radius
+      const goUp = y1 < y2  // true when parent card is above child card
+      return [
+        `M ${x2} ${y2}`,
+        `H ${midX - r}`,
+        `Q ${midX} ${y2} ${midX} ${y2 + (goUp ? -r : r)}`,
+        `V ${y1 + (goUp ? r : -r)}`,
+        `Q ${midX} ${y1} ${midX + r} ${y1}`,
+        `H ${x1}`,
+      ].join(' ')
     }
-    // Spouse: vertical arc bowing slightly to the left (same x column)
-    const midY = (edge.y1 + edge.y2) / 2
-    return `M ${edge.x1} ${edge.y1} Q ${edge.x1 - 22} ${midY} ${edge.x2} ${edge.y2}`
+
+    // Spouse: stacked vertically in the same column → clean vertical line
+    return `M ${x1} ${y1} V ${y2}`
   }
 
   // ── Expand toggles ───────────────────────────────────────────────────────
@@ -195,28 +222,23 @@ export default function FamilyTree({ focalPersonId, onPersonSelect, selectedPers
         <g ref={gRef}>
 
           {/* ── Edges — rendered first so nodes sit on top ── */}
-          {edges.map(edge => (
-            <g key={edge.id}>
+          {edges.map(edge => {
+            const isHighlighted = highlightedEdgeIds.has(edge.id)
+            const isSpouse      = edge.type === 'spouse'
+            return (
               <path
+                key={edge.id}
                 d={getEdgePath(edge)}
                 fill="none"
-                stroke={edge.type === 'spouse' ? '#C9A84C' : '#C4A882'}
-                strokeWidth={edge.type === 'spouse' ? 1.5 : 1}
-                strokeDasharray={edge.type === 'spouse' ? '5 4' : 'none'}
-                opacity={edge.type === 'spouse' ? 0.55 : 0.35}
+                stroke={isSpouse ? '#C9A84C' : '#B8A882'}
+                strokeWidth={isHighlighted ? (isSpouse ? 1.6 : 1.2) : (isSpouse ? 1.1 : 0.75)}
+                strokeDasharray={isSpouse ? '4 4' : 'none'}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity={isHighlighted ? (isSpouse ? 0.85 : 0.7) : (isSpouse ? 0.4 : 0.3)}
               />
-              {/* Decorative dot at the arc midpoint of spouse connections */}
-              {edge.type === 'spouse' && (
-                <circle
-                  cx={edge.x1 - 11}
-                  cy={(edge.y1 + edge.y2) / 2}
-                  r={3}
-                  fill="#C9A84C"
-                  opacity={0.6}
-                />
-              )}
-            </g>
-          ))}
+            )
+          })}
 
           {/* ── Person nodes ── */}
           {Array.from(positions.entries()).map(([personId, pos]) => {
