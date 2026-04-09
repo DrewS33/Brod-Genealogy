@@ -1089,6 +1089,38 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+/* Direction labels — younger left / older right */
+.tree-direction-bar {
+  position: absolute;
+  top: 0.6rem;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 10;
+  padding: 0 1rem;
+}
+
+.tree-dir {
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--stone-400);
+  opacity: 0.7;
+  user-select: none;
+}
+
+.tree-dir--left {
+  color: var(--forest-700);
+}
+
+.tree-dir--right {
+  color: var(--copper-600, #7A5C3A);
+}
+
 /* 13. PERSON PANEL */
 .person-panel {
   position: fixed;

@@ -7,20 +7,35 @@ import { useFamilyContext } from '../../store/FamilyContext.jsx'
 const NODE_W = 150
 const NODE_H = 72
 
-// Opacity by generation distance from focal
+// Visual opacity fades slightly for distant generations
 const LAYER_OPACITY = { '-3': 0.55, '-2': 0.75, '-1': 0.92, '0': 1, '1': 0.92, '2': 0.75 }
 
-// Small expand/collapse toggle button rendered in SVG
+// Generation band colors — top strip on each card
+const BAND_COLOR = {
+  '-3': '#9B7B55',  // great-grandparents — warm tan
+  '-2': '#7A5C3A',  // grandparents — medium brown
+  '-1': '#3D6B1F',  // parents — medium green
+   '0': '#C9A84C',  // focal + spouse — gold
+   '1': '#2D5016',  // children — deep forest
+   '2': '#4A7A30',  // grandchildren — lighter forest
+}
+
+/**
+ * Circular expand / collapse button rendered in SVG.
+ * cx/cy are relative to the node's top-left origin.
+ */
 function ExpandButton({ cx, cy, expanded, onClick }) {
   return (
     <g
       transform={`translate(${cx}, ${cy})`}
-      onClick={(e) => { e.stopPropagation(); onClick() }}
+      onClick={e => { e.stopPropagation(); onClick() }}
       style={{ cursor: 'pointer' }}
       className="tree-expand-btn"
     >
-      <circle r={10} fill="#FDFBF7" stroke="#2D5016" strokeWidth={1.5} />
+      <circle r={11} fill="#FDFBF7" stroke="#2D5016" strokeWidth={1.5} />
+      {/* Horizontal bar always present */}
       <line x1={-4} y1={0} x2={4} y2={0} stroke="#2D5016" strokeWidth={1.8} strokeLinecap="round" />
+      {/* Vertical bar only when collapsed (shows +, hides to show −) */}
       {!expanded && (
         <line x1={0} y1={-4} x2={0} y2={4} stroke="#2D5016" strokeWidth={1.8} strokeLinecap="round" />
       )}
@@ -33,19 +48,19 @@ export default function FamilyTree({ focalPersonId, onPersonSelect, selectedPers
   const gRef    = useRef(null)
   const zoomRef = useRef(null)
 
-  const [hoveredId, setHoveredId] = useState(null)
+  const [hoveredId,           setHoveredId]           = useState(null)
   const [expandedAncestors,   setExpandedAncestors]   = useState(new Set())
   const [expandedDescendants, setExpandedDescendants] = useState(new Set())
 
   const { people } = useFamilyContext()
 
-  // Reset expansion whenever the focal person changes
+  // Reset expansion state whenever the focal person changes
   useEffect(() => {
     setExpandedAncestors(new Set())
     setExpandedDescendants(new Set())
   }, [focalPersonId])
 
-  // Compute layout
+  // Compute layout + edges
   const { positions, layers, edges } = useMemo(() => {
     if (!focalPersonId || !people.has(focalPersonId)) {
       return { positions: new Map(), layers: new Map(), edges: [] }
@@ -58,89 +73,89 @@ export default function FamilyTree({ focalPersonId, onPersonSelect, selectedPers
     return { positions: pos, layers: lay, edges: edg }
   }, [focalPersonId, people, expandedAncestors, expandedDescendants])
 
-  // ── D3 zoom setup ────────────────────────────────────────────────
+  // ── D3 zoom & initial centering ─────────────────────────────────────────
   useEffect(() => {
     if (!svgRef.current || !gRef.current) return
     const svg = select(svgRef.current)
     const g   = select(gRef.current)
 
     const zoomBehavior = zoom()
-      .scaleExtent([0.1, 3])
-      .on('zoom', (e) => g.attr('transform', e.transform))
+      .scaleExtent([0.15, 3])
+      .on('zoom', e => g.attr('transform', e.transform))
 
     zoomRef.current = zoomBehavior
     svg.call(zoomBehavior).on('dblclick.zoom', null)
 
-    // Center on the focal person
+    // Center the focal person card in the viewport
     const focalPos = positions.get(focalPersonId)
     if (focalPos && svgRef.current) {
       const rect = svgRef.current.getBoundingClientRect()
-      const w = rect.width  || 800
+      const w = rect.width  || 900
       const h = rect.height || 600
       const t = zoomIdentity
         .translate(w / 2 - focalPos.x - NODE_W / 2, h / 2 - focalPos.y - NODE_H / 2)
-        .scale(0.9)
+        .scale(0.92)
       svg.call(zoomBehavior.transform, t)
     }
 
     return () => { svg.on('.zoom', null) }
   }, [focalPersonId, positions])
 
-  // ── Zoom controls ────────────────────────────────────────────────
-  const handleZoomIn  = useCallback(() => {
-    if (!svgRef.current || !zoomRef.current) return
-    select(svgRef.current).transition().duration(300).call(zoomRef.current.scaleBy, 1.4)
+  // ── Zoom control handlers ────────────────────────────────────────────────
+  const handleZoomIn = useCallback(() => {
+    if (svgRef.current && zoomRef.current)
+      select(svgRef.current).transition().duration(300).call(zoomRef.current.scaleBy, 1.4)
   }, [])
 
   const handleZoomOut = useCallback(() => {
-    if (!svgRef.current || !zoomRef.current) return
-    select(svgRef.current).transition().duration(300).call(zoomRef.current.scaleBy, 0.7)
+    if (svgRef.current && zoomRef.current)
+      select(svgRef.current).transition().duration(300).call(zoomRef.current.scaleBy, 0.7)
   }, [])
 
-  const handleCenter  = useCallback(() => {
+  const handleCenter = useCallback(() => {
     if (!svgRef.current || !zoomRef.current) return
     const focalPos = positions.get(focalPersonId)
     if (!focalPos) return
     const rect = svgRef.current.getBoundingClientRect()
-    const w = rect.width  || 800
+    const w = rect.width  || 900
     const h = rect.height || 600
     const t = zoomIdentity
       .translate(w / 2 - focalPos.x - NODE_W / 2, h / 2 - focalPos.y - NODE_H / 2)
-      .scale(0.9)
+      .scale(0.92)
     select(svgRef.current).transition().duration(500).call(zoomRef.current.transform, t)
   }, [focalPersonId, positions])
 
-  // ── Edge path builder ────────────────────────────────────────────
-  const getEdgePath = (edge) => {
+  // ── Edge path builder ────────────────────────────────────────────────────
+  const getEdgePath = edge => {
     if (edge.type === 'parent-child') {
-      const midY = (edge.y1 + edge.y2) / 2
-      return `M ${edge.x1} ${edge.y1} C ${edge.x1} ${midY}, ${edge.x2} ${midY}, ${edge.x2} ${edge.y2}`
+      // Horizontal S-curve: child's right edge → parent's left edge
+      const midX = (edge.x1 + edge.x2) / 2
+      // Start at child right edge (x2, y2), end at parent left edge (x1, y1)
+      return `M ${edge.x2} ${edge.y2} C ${midX} ${edge.y2}, ${midX} ${edge.y1}, ${edge.x1} ${edge.y1}`
     }
-    // Spouse: gentle horizontal arc curving slightly upward
-    const midX = (edge.x1 + edge.x2) / 2
-    return `M ${edge.x1} ${edge.y1} Q ${midX} ${edge.y1 - 18} ${edge.x2} ${edge.y2}`
+    // Spouse: vertical arc bowing slightly to the left (same x column)
+    const midY = (edge.y1 + edge.y2) / 2
+    return `M ${edge.x1} ${edge.y1} Q ${edge.x1 - 22} ${midY} ${edge.x2} ${edge.y2}`
   }
 
-  // ── Expand toggles ───────────────────────────────────────────────
-  const toggleAncestor = useCallback((id) => {
+  // ── Expand toggles ───────────────────────────────────────────────────────
+  const toggleAncestor = useCallback(id => {
     setExpandedAncestors(prev => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      next.has(id) ? next.delete(id) : next.add(id)
       return next
     })
   }, [])
 
-  const toggleDescendant = useCallback((id) => {
+  const toggleDescendant = useCallback(id => {
     setExpandedDescendants(prev => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      next.has(id) ? next.delete(id) : next.add(id)
       return next
     })
   }, [])
 
-  // ── Empty state ──────────────────────────────────────────────────
+  // ── Empty state ──────────────────────────────────────────────────────────
   if (positions.size === 0) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
@@ -153,6 +168,13 @@ export default function FamilyTree({ focalPersonId, onPersonSelect, selectedPers
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+
+      {/* Direction indicators — always visible, subtly positioned */}
+      <div className="tree-direction-bar">
+        <span className="tree-dir tree-dir--left">← Younger</span>
+        <span className="tree-dir tree-dir--right">Older →</span>
+      </div>
+
       <svg
         ref={svgRef}
         className="tree-canvas"
@@ -172,7 +194,7 @@ export default function FamilyTree({ focalPersonId, onPersonSelect, selectedPers
 
         <g ref={gRef}>
 
-          {/* ── Edges ── rendered first so nodes sit on top ── */}
+          {/* ── Edges — rendered first so nodes sit on top ── */}
           {edges.map(edge => (
             <g key={edge.id}>
               <path
@@ -181,22 +203,24 @@ export default function FamilyTree({ focalPersonId, onPersonSelect, selectedPers
                 stroke={edge.type === 'spouse' ? '#C9A84C' : '#C4A882'}
                 strokeWidth={edge.type === 'spouse' ? 1.5 : 1}
                 strokeDasharray={edge.type === 'spouse' ? '5 4' : 'none'}
-                opacity={edge.type === 'spouse' ? 0.6 : 0.4}
+                opacity={edge.type === 'spouse' ? 0.55 : 0.35}
               />
-              {/* Spouse midpoint ring */}
-              {edge.type === 'spouse' && (() => {
-                const midX = (edge.x1 + edge.x2) / 2
-                const midY = edge.y1 - 9
-                return (
-                  <circle cx={midX} cy={midY} r={3.5} fill="#C9A84C" opacity={0.7} />
-                )
-              })()}
+              {/* Decorative dot at the arc midpoint of spouse connections */}
+              {edge.type === 'spouse' && (
+                <circle
+                  cx={edge.x1 - 11}
+                  cy={(edge.y1 + edge.y2) / 2}
+                  r={3}
+                  fill="#C9A84C"
+                  opacity={0.6}
+                />
+              )}
             </g>
           ))}
 
           {/* ── Person nodes ── */}
           {Array.from(positions.entries()).map(([personId, pos]) => {
-            const person   = people.get(personId)
+            const person = people.get(personId)
             if (!person) return null
 
             const isFocal    = personId === focalPersonId
@@ -205,11 +229,11 @@ export default function FamilyTree({ focalPersonId, onPersonSelect, selectedPers
             const layer      = layers.get(personId) ?? 0
             const opacity    = LAYER_OPACITY[String(layer)] ?? 0.7
 
-            // ── Card styling ──────────────────────────────────────
+            // ── Card appearance ─────────────────────────────────────
             let cardFill        = '#FDFBF7'
             let cardStroke      = '#D4C8A8'
             let cardStrokeWidth = 1
-            let filterAttr      = `url(#node-shadow)`
+            let filterAttr      = 'url(#node-shadow)'
 
             if (isFocal) {
               cardFill        = '#FFFBF0'
@@ -227,37 +251,34 @@ export default function FamilyTree({ focalPersonId, onPersonSelect, selectedPers
               filterAttr      = 'url(#hover-shadow)'
             }
 
-            // Softer styling for distant generations
+            // Softer fill for distant generations
             if (!isFocal && !isSelected && Math.abs(layer) >= 2) {
               cardFill   = '#F7F3EB'
-              cardStroke = layer === -2 ? '#D4C8A8' : '#C8BCAA'
+              cardStroke = '#D4C8A8'
             }
 
-            // ── Avatar ────────────────────────────────────────────
-            const avatarUri  = getAvatarDataUri(person)
-            const lifespan   = formatLifespan(person.birthDate, person.deathDate)
-            const firstName  = person.firstName || ''
-            const lastName   = person.lastName  || ''
+            // ── Content ─────────────────────────────────────────────
+            const avatarUri     = getAvatarDataUri(person)
+            const lifespan      = formatLifespan(person.birthDate, person.deathDate)
+            const firstName     = person.firstName || ''
+            const lastName      = person.lastName  || ''
             const relationLabel = getRelationLabel(personId, focalPersonId, people)
 
-            // ── Expand button visibility ──────────────────────────
-            // Ancestor expand: shown on grandparents (layer -2) who have un-shown parents
-            const hasHiddenParents = Math.abs(layer) >= 1 && layer < 0 &&
-              (person.parents || []).some(id => peopleMap_has(id) && !positions.has(id))
-            // Descendant expand: shown on children (layer 1) who have children of their own
-            const hasHiddenChildren = layer === 1 && (person.children || []).length > 0
+            // ── Expand button visibility ─────────────────────────────
+            // Ancestors expand → RIGHT. Shown on any visible ancestor
+            // who has parents not yet in the layout.
+            const hasHiddenAncestors = layer < 0 &&
+              (person.parents || []).some(id => people.has(id) && !positions.has(id))
 
-            function peopleMap_has(id) { return people.has(id) }
+            // Descendants expand ← LEFT. Shown on children (layer 1)
+            // who have their own children not yet in the layout.
+            const hasHiddenDescendants = layer === 1 &&
+              (person.children || []).some(id => people.has(id) && !positions.has(id))
 
-            const isAncExpanded  = expandedAncestors.has(personId)
-            const isDescExpanded = expandedDescendants.has(personId)
-
-            // Focal node is slightly taller to feel more prominent
-            const cardH = isFocal ? NODE_H + 8 : NODE_H
-            const cardW = isFocal ? NODE_W + 6 : NODE_W
-
-            // Avatar circle size
-            const avatarR = isFocal ? 23 : 19
+            // Focal node is slightly larger for visual emphasis
+            const cardH  = isFocal ? NODE_H + 8 : NODE_H
+            const cardW  = isFocal ? NODE_W + 6 : NODE_W
+            const avatarR  = isFocal ? 23 : 19
             const avatarCx = isFocal ? 30 : 26
             const avatarCy = cardH / 2
 
@@ -274,47 +295,32 @@ export default function FamilyTree({ focalPersonId, onPersonSelect, selectedPers
               >
                 {/* Card background */}
                 <rect
-                  x={0} y={0}
-                  width={cardW} height={cardH}
-                  rx={9} ry={9}
-                  fill={cardFill}
-                  stroke={cardStroke}
-                  strokeWidth={cardStrokeWidth}
+                  x={0} y={0} width={cardW} height={cardH} rx={9} ry={9}
+                  fill={cardFill} stroke={cardStroke} strokeWidth={cardStrokeWidth}
                 />
 
-                {/* Generation-band indicator: thin colored top strip */}
+                {/* Generation band — thin top strip, color-coded by layer */}
                 <rect
-                  x={0} y={0}
-                  width={cardW} height={3}
-                  rx={2}
-                  fill={
-                    isFocal       ? '#C9A84C' :
-                    layer === -1  ? '#3D6B1F' :
-                    layer === -2  ? '#7A5C3A' :
-                    layer === -3  ? '#9B7B55' :
-                    layer >=  1   ? '#2D5016' :
-                    '#D4C8A8'
-                  }
-                  opacity={0.8}
+                  x={0} y={0} width={cardW} height={3} rx={2}
+                  fill={BAND_COLOR[String(layer)] || '#D4C8A8'}
+                  opacity={0.85}
                 />
 
-                {/* Avatar background circle */}
+                {/* Avatar background glow */}
                 <circle
                   cx={avatarCx} cy={avatarCy} r={avatarR + 3}
                   fill={person.gender === 'F' ? '#7A5C3A' : '#2D5016'}
                   opacity={0.1}
                 />
 
-                {/* Avatar image */}
+                {/* Avatar image with clip */}
                 <clipPath id={`clip-${personId}`}>
                   <circle cx={avatarCx} cy={avatarCy} r={avatarR} />
                 </clipPath>
                 <image
                   href={avatarUri}
-                  x={avatarCx - avatarR}
-                  y={avatarCy - avatarR}
-                  width={avatarR * 2}
-                  height={avatarR * 2}
+                  x={avatarCx - avatarR} y={avatarCy - avatarR}
+                  width={avatarR * 2} height={avatarR * 2}
                   clipPath={`url(#clip-${personId})`}
                 />
                 {/* Avatar ring */}
@@ -325,7 +331,7 @@ export default function FamilyTree({ focalPersonId, onPersonSelect, selectedPers
                   strokeWidth={isFocal ? 2 : 1}
                 />
 
-                {/* Name lines */}
+                {/* First name */}
                 <text
                   x={avatarCx + avatarR + 10}
                   y={cardH / 2 - (lifespan ? 10 : 5)}
@@ -336,6 +342,8 @@ export default function FamilyTree({ focalPersonId, onPersonSelect, selectedPers
                 >
                   {firstName}
                 </text>
+
+                {/* Last name */}
                 <text
                   x={avatarCx + avatarR + 10}
                   y={cardH / 2 + 4}
@@ -361,11 +369,10 @@ export default function FamilyTree({ focalPersonId, onPersonSelect, selectedPers
                   </text>
                 )}
 
-                {/* Relationship label (bottom-right badge) */}
+                {/* Relationship label — bottom-right badge */}
                 {relationLabel && (
                   <text
-                    x={cardW - 6}
-                    y={cardH - 6}
+                    x={cardW - 6} y={cardH - 6}
                     fontFamily="'Inter', sans-serif"
                     fontSize={7.5}
                     fill={layer === 0 ? '#C9A84C' : '#9B7B55'}
@@ -377,7 +384,7 @@ export default function FamilyTree({ focalPersonId, onPersonSelect, selectedPers
                   </text>
                 )}
 
-                {/* Focal star */}
+                {/* Focal star — top-right corner */}
                 {isFocal && (
                   <text
                     x={cardW - 10} y={14}
@@ -390,22 +397,22 @@ export default function FamilyTree({ focalPersonId, onPersonSelect, selectedPers
                   </text>
                 )}
 
-                {/* Expand ancestors button (top center of node) */}
-                {hasHiddenParents && (
+                {/* Expand ancestors → RIGHT edge of node */}
+                {hasHiddenAncestors && (
                   <ExpandButton
-                    cx={cardW / 2}
-                    cy={-12}
-                    expanded={isAncExpanded}
+                    cx={cardW + 12}
+                    cy={cardH / 2}
+                    expanded={expandedAncestors.has(personId)}
                     onClick={() => toggleAncestor(personId)}
                   />
                 )}
 
-                {/* Expand descendants button (bottom center of node) */}
-                {hasHiddenChildren && (
+                {/* Expand descendants ← LEFT edge of node */}
+                {hasHiddenDescendants && (
                   <ExpandButton
-                    cx={cardW / 2}
-                    cy={cardH + 12}
-                    expanded={isDescExpanded}
+                    cx={-12}
+                    cy={cardH / 2}
+                    expanded={expandedDescendants.has(personId)}
                     onClick={() => toggleDescendant(personId)}
                   />
                 )}
