@@ -208,27 +208,35 @@ export function computeEdges(positions, peopleMap) {
 /**
  * Computes structured family-unit routes for rendering.
  *
- * For each couple (or single parent) with visible children this produces:
- *   - Parent stubs  : horizontal lines from each parent card's left edge → coupleJX
- *   - Couple bar    : vertical line at coupleJX connecting both parents
- *   - Link bar      : horizontal line at junctionY from coupleJX → sibJX
- *   - Sibling bar   : vertical line at sibJX spanning all children
- *   - Child spurs   : horizontal lines from each child card's right edge → sibJX
+ * Geometry uses FIXED STUBS from the card edges, not percentages of the gap.
+ * With GEN_X=290 and NODE_W=150, gap is always 140px, giving:
+ *   - COUPLE_STUB : 20px from each parent card's left edge  → coupleJX
+ *   - CHILD_STUB  : 20px from each child card's right edge  → sibJX
+ *   - spine       : 100px horizontal — the prominent family-descent spine
  *
- * coupleJX sits 28% into the gap from the parent side.
- * sibJX sits 28% into the gap from the child side.
- * The middle 44% is the open horizontal bridge — giving it visual breathing room.
+ * This fixed-stub approach produces consistent geometry at every generation.
  *
- * Also produces marriageNodes: small visual markers at the junction point
- * (coupleJX, junctionY) that make the family descent point obvious.
+ * Route types produced per family unit:
+ *   couple   — dashed gold stubs (parentLeft→coupleJX) + vertical couple bar
+ *   spine    — solid horizontal descent spine (coupleJX→sibJX at junctionY)
+ *   sib-bar  — solid thick vertical sibling collector bar at sibJX [multi-child]
+ *   lineage  — solid thin horizontal child spurs (childRight→sibJX per child)
  *
- * Spouse pairs with no visible children get a bracket-style solo connector.
+ * Single-child families: no sibling bar. A short vertical 'spine' descent
+ * at sibJX bridges any vertical offset, then a lineage spur to the child.
+ *
+ * Marriage node sits at (sibJX, junctionY) — the T-junction where the spine
+ * meets the sibling bar. This is the most readable spot for the junction marker.
+ *
+ * Solo spouse pairs (no shared visible children) get a left-bracket connector.
  *
  * Returns { routes, marriageNodes }
  */
 export function computeFamilyRoutes(positions, people, layers) {
-  const NODE_W = 150
-  const NODE_H = 72
+  const NODE_W       = 150
+  const NODE_H       = 72
+  const COUPLE_STUB  = 20   // px from parent card left edge to coupleJX
+  const CHILD_STUB   = 20   // px from child card right edge to sibJX
 
   const routes        = []
   const marriageNodes = []  // { x, y, coupleKey, involvedIds }
@@ -284,10 +292,11 @@ export function computeFamilyRoutes(positions, people, layers) {
 
     if (gap <= 0) continue
 
-    // Junction x-coordinates — 28% into the gap from each side
-    // Leaves 44% in the middle as open horizontal bridge
-    const coupleJX = parentLeft - gap * 0.28
-    const sibJX    = childRight  + gap * 0.28
+    // Fixed stubs — consistent at every generation level.
+    // Fallback to proportional if gap is unexpectedly tight.
+    const stub     = Math.min(COUPLE_STUB, gap * 0.22)
+    const coupleJX = parentLeft - stub
+    const sibJX    = childRight  + stub
 
     const parentCYs   = parents.map(p => p.pos.y + NODE_H / 2)
     const childCYs    = children.map(c => c.pos.y + NODE_H / 2)
@@ -295,33 +304,47 @@ export function computeFamilyRoutes(positions, people, layers) {
     const botParentCY = parentCYs[parentCYs.length - 1]
     const junctionY   = (topParentCY + botParentCY) / 2
 
-    const topChildCY = childCYs[0]
-    const botChildCY = childCYs[childCYs.length - 1]
-    // Sibling bar spans all children AND the junction row
-    const sibTop = Math.min(topChildCY, junctionY)
-    const sibBot = Math.max(botChildCY, junctionY)
-
     const push = (d, type) => routes.push({ d, type, involvedIds, coupleKey })
 
-    // 1. Stubs: each parent card's left edge → coupleJX
+    // ── 1. Couple stubs: each parent card left edge → coupleJX ─────────
     for (const cy of parentCYs) {
       push(`M ${parentLeft} ${cy} H ${coupleJX}`, 'couple')
     }
-    // 2. Couple vertical bar at coupleJX (only when 2+ parents)
+
+    // ── 2. Couple bar at coupleJX (vertical, when 2+ parents) ──────────
     if (parents.length >= 2) {
       push(`M ${coupleJX} ${topParentCY} V ${botParentCY}`, 'couple')
     }
-    // 3. Horizontal link at junctionY: coupleJX → sibJX
-    push(`M ${coupleJX} ${junctionY} H ${sibJX}`, 'link')
-    // 4. Sibling bar at sibJX spanning full child range + junction
-    push(`M ${sibJX} ${sibTop} V ${sibBot}`, 'sib-bar')
-    // 5. Child spurs: each child card's right edge → sibJX
-    for (const cy of childCYs) {
+
+    // ── 3. Family spine: horizontal descent at junctionY ───────────────
+    push(`M ${coupleJX} ${junctionY} H ${sibJX}`, 'spine')
+
+    // ── 4. Sibling structure — multi-child vs single-child ─────────────
+    if (children.length === 1) {
+      // Single child: no sibling bar.
+      // If the junction is offset from the child's centerline, drop vertically.
+      const cy = childCYs[0]
+      if (Math.abs(junctionY - cy) > 2) {
+        push(`M ${sibJX} ${junctionY} V ${cy}`, 'spine')
+      }
       push(`M ${childRight} ${cy} H ${sibJX}`, 'lineage')
+    } else {
+      // Multiple children: full sibling bar spanning all children.
+      // The bar extends from the topmost to bottommost child center.
+      // If junctionY falls outside that range, extend the bar to reach it.
+      const topChildCY = childCYs[0]
+      const botChildCY = childCYs[childCYs.length - 1]
+      const sibTop     = Math.min(topChildCY, junctionY)
+      const sibBot     = Math.max(botChildCY, junctionY)
+
+      push(`M ${sibJX} ${sibTop} V ${sibBot}`, 'sib-bar')
+      for (const cy of childCYs) {
+        push(`M ${childRight} ${cy} H ${sibJX}`, 'lineage')
+      }
     }
 
-    // Marriage node — small visual marker at the descent junction
-    marriageNodes.push({ x: coupleJX, y: junctionY, coupleKey, involvedIds })
+    // ── Marriage node: T-junction where spine meets sibling structure ───
+    marriageNodes.push({ x: sibJX, y: junctionY, coupleKey, involvedIds })
   }
 
   // ── Step 3: solo spouse pairs (visible but no shared children) ────────
