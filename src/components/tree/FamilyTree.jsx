@@ -61,16 +61,16 @@ export default function FamilyTree({ focalPersonId, onPersonSelect, selectedPers
   }, [focalPersonId])
 
   // Compute layout + family-unit routes
-  const { positions, layers, routes } = useMemo(() => {
+  const { positions, layers, routes, marriageNodes } = useMemo(() => {
     if (!focalPersonId || !people.has(focalPersonId)) {
-      return { positions: new Map(), layers: new Map(), routes: [] }
+      return { positions: new Map(), layers: new Map(), routes: [], marriageNodes: [] }
     }
     const { positions: pos, layers: lay } = computeTreeLayout(focalPersonId, people, {
       expandedAncestors,
       expandedDescendants,
     })
-    const rts = computeFamilyRoutes(pos, people, lay)
-    return { positions: pos, layers: lay, routes: rts }
+    const { routes: rts, marriageNodes: mns } = computeFamilyRoutes(pos, people, lay)
+    return { positions: pos, layers: lay, routes: rts, marriageNodes: mns }
   }, [focalPersonId, people, expandedAncestors, expandedDescendants])
 
   // ── D3 zoom setup — runs once on mount ──────────────────────────────────
@@ -186,18 +186,66 @@ export default function FamilyTree({ focalPersonId, onPersonSelect, selectedPers
           {/* ── Family-unit routes — rendered first so nodes sit on top ── */}
           {routes.map((route, i) => {
             const isHighlighted = selectedPersonId != null && route.involvedIds.has(selectedPersonId)
-            const isCouple      = route.type === 'couple' || route.type === 'couple-solo'
+            const type = route.type
+
+            // ── Visual style per route type ──────────────────────────────
+            // couple / couple-solo : gold dashed — spouse pair bond
+            // link                 : warm brown solid — descent bridge from couple
+            // sib-bar              : warm brown solid — sibling collector bar
+            // lineage              : warm tan solid — individual child spurs
+            let stroke, strokeWidth, strokeDash, opacity
+
+            if (type === 'couple' || type === 'couple-solo') {
+              stroke      = '#C9A84C'
+              strokeWidth = isHighlighted ? 2.0 : 1.4
+              strokeDash  = '5 3'
+              opacity     = isHighlighted ? 0.90 : 0.65
+            } else if (type === 'link') {
+              stroke      = '#7A6040'
+              strokeWidth = isHighlighted ? 1.6 : 1.1
+              strokeDash  = 'none'
+              opacity     = isHighlighted ? 0.80 : 0.55
+            } else if (type === 'sib-bar') {
+              stroke      = '#7A6040'
+              strokeWidth = isHighlighted ? 1.6 : 1.1
+              strokeDash  = 'none'
+              opacity     = isHighlighted ? 0.80 : 0.55
+            } else {
+              // lineage (child spurs)
+              stroke      = '#9B8060'
+              strokeWidth = isHighlighted ? 1.4 : 1.0
+              strokeDash  = 'none'
+              opacity     = isHighlighted ? 0.75 : 0.48
+            }
+
             return (
               <path
-                key={`${route.coupleKey}-${route.type}-${i}`}
+                key={`${route.coupleKey}-${type}-${i}`}
                 d={route.d}
                 fill="none"
-                stroke={isCouple ? '#C9A84C' : '#B8A882'}
-                strokeWidth={isHighlighted ? (isCouple ? 1.5 : 1.1) : (isCouple ? 1.0 : 0.65)}
-                strokeDasharray={isCouple ? '4 3' : 'none'}
+                stroke={stroke}
+                strokeWidth={strokeWidth}
+                strokeDasharray={strokeDash}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                opacity={isHighlighted ? (isCouple ? 0.8 : 0.6) : (isCouple ? 0.45 : 0.28)}
+                opacity={opacity}
+              />
+            )
+          })}
+
+          {/* ── Marriage nodes — small junction markers where couple descends ── */}
+          {marriageNodes.map((node, i) => {
+            const isHighlighted = selectedPersonId != null && node.involvedIds.has(selectedPersonId)
+            return (
+              <circle
+                key={`mn-${node.coupleKey}-${i}`}
+                cx={node.x}
+                cy={node.y}
+                r={4.5}
+                fill="#FDFBF7"
+                stroke="#C9A84C"
+                strokeWidth={isHighlighted ? 2.0 : 1.5}
+                opacity={isHighlighted ? 0.95 : 0.70}
               />
             )
           })}

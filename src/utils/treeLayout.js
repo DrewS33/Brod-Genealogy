@@ -5,19 +5,21 @@
  *   LEFT  (x negative) = younger generations (children, grandchildren)
  *   RIGHT (x positive) = older generations   (parents, grandparents)
  *
- * Default view — 3 generations only:
+ * Default view — 3 generations:
  *   x = -GEN_X : Children          (layer  1)
  *   x =  0     : Focal + spouse(s) (layer  0)
  *   x = +GEN_X : Parents           (layer -1)
  *
- * Expansion (on demand):
- *   expandedAncestors   – Set of IDs whose parents should be revealed (→ right)
- *   expandedDescendants – Set of IDs whose children should be revealed (← left)
+ * Spacing vocabulary:
+ *   COUPLE_GAP  — tight vertical gap between two spouses (they're one unit)
+ *   SIBLING_GAP — larger gap between sibling family units
+ *   GEN_X       — horizontal distance between generation columns
  */
 
-const NODE_H   = 72
-const GEN_X    = 265  // horizontal distance between generation columns
-const VERT_GAP = 100  // vertical center-to-center distance within a column
+const NODE_H      = 72
+const GEN_X       = 290   // horizontal distance between generation columns
+const COUPLE_GAP  = 95    // vertical gap between two spouses in a couple pair
+const SIBLING_GAP = 122   // vertical gap between sibling family units
 
 export function computeTreeLayout(focalPersonId, peopleMap, options = {}) {
   const {
@@ -32,78 +34,128 @@ export function computeTreeLayout(focalPersonId, peopleMap, options = {}) {
 
   const focal = peopleMap.get(focalPersonId)
 
-  // ── Layer 0: Focal + spouse(s) ─────────────────────────────────────────
+  // ── Layer 0: Focal + spouse(s) — tight couple grouping ────────────────
   positions.set(focalPersonId, { x: 0, y: 0 })
   layers.set(focalPersonId, 0)
 
   const focalSpouses = (focal.spouses || []).filter(id => peopleMap.has(id))
   focalSpouses.forEach((spouseId, i) => {
-    positions.set(spouseId, { x: 0, y: VERT_GAP * (i + 1) })
+    positions.set(spouseId, { x: 0, y: COUPLE_GAP * (i + 1) })
     layers.set(spouseId, 0)
   })
 
-  // Vertical center of the focal group — anchors all other columns symmetrically
-  const focalGroupCenterY = (focalSpouses.length * VERT_GAP) / 2
+  // Vertical center of the focal group — anchors all other columns
+  const focalGroupCenterY = (focalSpouses.length * COUPLE_GAP) / 2
 
-  // ── Layer -1 (right): Parents ──────────────────────────────────────────
+  // ── Layer -1 (right): Parents — use COUPLE_GAP (they are a couple) ────
   const parentIds = (focal.parents || []).filter(id => peopleMap.has(id))
-  placeColumn(parentIds, GEN_X, focalGroupCenterY, -1, positions, layers)
+  placeColumn(parentIds, GEN_X, focalGroupCenterY, -1, positions, layers, COUPLE_GAP)
 
-  // ── Layer -2 (right): Grandparents — only when a parent is expanded ────
+  // ── Layer -2 (right): Grandparents ────────────────────────────────────
   const grandparentIds = new Set()
   for (const parentId of parentIds) {
     if (!positions.has(parentId) || !expandedAncestors.has(parentId)) continue
     const parent = peopleMap.get(parentId)
     const gpIds  = (parent?.parents || []).filter(id => peopleMap.has(id) && !positions.has(id))
-    placeColumn(gpIds, GEN_X * 2, positions.get(parentId).y, -2, positions, layers)
+    // Each parent pair is typically a couple — use COUPLE_GAP
+    placeColumn(gpIds, GEN_X * 2, positions.get(parentId).y, -2, positions, layers, COUPLE_GAP)
     gpIds.forEach(id => grandparentIds.add(id))
   }
 
-  // ── Layer -3 (right): Great-grandparents — only when a grandparent is expanded ──
+  // ── Layer -3 (right): Great-grandparents ──────────────────────────────
   for (const gpId of grandparentIds) {
     if (!expandedAncestors.has(gpId)) continue
     const gp     = peopleMap.get(gpId)
     const ggpIds = (gp?.parents || []).filter(id => peopleMap.has(id) && !positions.has(id))
-    placeColumn(ggpIds, GEN_X * 3, positions.get(gpId).y, -3, positions, layers)
+    placeColumn(ggpIds, GEN_X * 3, positions.get(gpId).y, -3, positions, layers, COUPLE_GAP)
   }
 
-  // ── Layer +1 (left): Children ──────────────────────────────────────────
+  // ── Layer +1 (left): Children — couple-aware placement ────────────────
   const childIds = [...new Set(focal.children || [])].filter(id => peopleMap.has(id))
-  placeColumn(childIds, -GEN_X, focalGroupCenterY, 1, positions, layers)
+  const childPositions = placeChildrenColumn(
+    childIds, -GEN_X, focalGroupCenterY, 1,
+    expandedDescendants, peopleMap, positions, layers
+  )
 
-  // ── Layer +2 (left): Grandchildren — only when a child is expanded ─────
-  for (const childId of childIds) {
-    if (!positions.has(childId) || !expandedDescendants.has(childId)) continue
+  // ── Layer +2 (left): Child spouses + grandchildren ────────────────────
+  for (const { id: childId, y: childY } of childPositions) {
+    if (!expandedDescendants.has(childId)) continue
 
-    const child    = peopleMap.get(childId)
-    const childPos = positions.get(childId)
+    const child = peopleMap.get(childId)
 
-    // Child's spouses — stacked below child in the same column
+    // Child's spouses — directly below the child with tight COUPLE_GAP
+    // (they are a couple unit, not part of the sibling stack)
     const childSpouses = (child?.spouses || []).filter(id => peopleMap.has(id) && !positions.has(id))
-    childSpouses.forEach((spId, i) => {
-      positions.set(spId, { x: -GEN_X, y: childPos.y + VERT_GAP * (i + 1) })
+    childSpouses.forEach((spId, j) => {
+      positions.set(spId, { x: -GEN_X, y: childY + COUPLE_GAP * (j + 1) })
       layers.set(spId, 1)
     })
 
-    // Grandchildren — one column further left
+    // Grandchildren — one column further left, centered on child+spouse group
+    const childGroupCenterY = childY + (childSpouses.length * COUPLE_GAP) / 2
     const gcIds = [...new Set(child?.children || [])].filter(id => peopleMap.has(id) && !positions.has(id))
-    const childGroupCenterY = childPos.y + (childSpouses.length * VERT_GAP) / 2
-    placeColumn(gcIds, -GEN_X * 2, childGroupCenterY, 2, positions, layers)
+    placeColumn(gcIds, -GEN_X * 2, childGroupCenterY, 2, positions, layers, SIBLING_GAP)
   }
 
   return { positions, layers }
 }
 
 /**
- * Place ids in a vertical column at x, centered around centerY.
+ * Place children in a column with couple-aware spacing.
+ *
+ * When a child is expanded with a spouse, the NEXT sibling is pushed down
+ * by COUPLE_GAP * numSpouses to prevent collision. This means expanded
+ * family units visually group the child+spouse together before the gap
+ * to the next sibling.
+ *
+ * Returns array of { id, y } so callers can place spouses without re-lookup.
  */
-function placeColumn(ids, x, centerY, layer, positions, layers) {
+function placeChildrenColumn(childIds, x, centerY, layer, expandedDescendants, peopleMap, positions, layers) {
+  if (childIds.length === 0) return []
+
+  // Pre-compute how many spouses each child will have when expanded
+  const spouseCounts = childIds.map(childId => {
+    if (!expandedDescendants.has(childId)) return 0
+    return (peopleMap.get(childId)?.spouses || []).filter(id => peopleMap.has(id)).length
+  })
+
+  // Total span = sum of gaps between consecutive family units
+  // Gap after child[i] = SIBLING_GAP + spouseCounts[i] * COUPLE_GAP
+  let totalSpan = 0
+  for (let i = 0; i < childIds.length - 1; i++) {
+    totalSpan += SIBLING_GAP + spouseCounts[i] * COUPLE_GAP
+  }
+
+  let currentY = centerY - totalSpan / 2
+  const result = []
+
+  for (let i = 0; i < childIds.length; i++) {
+    const childId = childIds[i]
+    if (!positions.has(childId)) {
+      positions.set(childId, { x, y: currentY })
+      layers.set(childId, layer)
+    }
+    result.push({ id: childId, y: currentY })
+
+    if (i < childIds.length - 1) {
+      currentY += SIBLING_GAP + spouseCounts[i] * COUPLE_GAP
+    }
+  }
+
+  return result
+}
+
+/**
+ * Place ids in a vertical column at x, centered around centerY.
+ * gap defaults to SIBLING_GAP; pass COUPLE_GAP for spouse pairs.
+ */
+function placeColumn(ids, x, centerY, layer, positions, layers, gap = SIBLING_GAP) {
   if (ids.length === 0) return
-  const totalSpan = (ids.length - 1) * VERT_GAP
+  const totalSpan = (ids.length - 1) * gap
   const startY    = centerY - totalSpan / 2
   ids.forEach((id, i) => {
     if (!positions.has(id)) {
-      positions.set(id, { x, y: startY + i * VERT_GAP })
+      positions.set(id, { x, y: startY + i * gap })
       layers.set(id, layer)
     }
   })
@@ -118,54 +170,34 @@ export function computeEdges(positions, peopleMap) {
     const person = peopleMap.get(personId)
     if (!person) continue
 
-    // ── Parent → child edges ────────────────────────────────────────────
-    // In horizontal layout: parent is to the RIGHT, child is to the LEFT.
-    // Edge runs from the parent's LEFT edge to the child's RIGHT edge.
     for (const childId of (person.children || [])) {
       if (!positions.has(childId)) continue
-
       const key = `pc-${personId}-${childId}`
       if (edgeSet.has(key)) continue
       edgeSet.add(key)
-
       const childPos = positions.get(childId)
       edges.push({
-        id: key,
-        type: 'parent-child',
-        x1: pos.x,                   // parent left edge
-        y1: pos.y + NODE_H / 2,      // parent vertical center
-        x2: childPos.x + NODE_W,     // child right edge
-        y2: childPos.y + NODE_H / 2, // child vertical center
-        sourceId: personId,
-        targetId: childId,
+        id: key, type: 'parent-child',
+        x1: pos.x, y1: pos.y + NODE_H / 2,
+        x2: childPos.x + NODE_W, y2: childPos.y + NODE_H / 2,
+        sourceId: personId, targetId: childId,
       })
     }
 
-    // ── Spouse edges ─────────────────────────────────────────────────────
-    // Spouses share the same x column and are stacked vertically.
-    // Edge runs from the bottom of the upper node to the top of the lower node,
-    // with a gentle arc bowing to the left.
     for (const spouseId of (person.spouses || [])) {
       if (!positions.has(spouseId)) continue
-      if (personId > spouseId) continue  // avoid duplicate edges
-
+      if (personId > spouseId) continue
       const key = `sp-${[personId, spouseId].sort().join('-')}`
       if (edgeSet.has(key)) continue
       edgeSet.add(key)
-
       const spousePos = positions.get(spouseId)
       const upper = pos.y < spousePos.y ? pos : spousePos
       const lower = pos.y < spousePos.y ? spousePos : pos
-
       edges.push({
-        id: key,
-        type: 'spouse',
-        x1: upper.x + NODE_W / 2, // center bottom of upper node
-        y1: upper.y + NODE_H,
-        x2: lower.x + NODE_W / 2, // center top of lower node
-        y2: lower.y,
-        sourceId: personId,
-        targetId: spouseId,
+        id: key, type: 'spouse',
+        x1: upper.x + NODE_W / 2, y1: upper.y + NODE_H,
+        x2: lower.x + NODE_W / 2, y2: lower.y,
+        sourceId: personId, targetId: spouseId,
       })
     }
   }
@@ -177,22 +209,29 @@ export function computeEdges(positions, peopleMap) {
  * Computes structured family-unit routes for rendering.
  *
  * For each couple (or single parent) with visible children this produces:
- *   - Parent stubs      : short horizontal lines from each parent card → coupleJX
- *   - Couple bar        : vertical line at coupleJX connecting both parents
- *   - Link bar          : horizontal line at junctionY from coupleJX ← sibJX
- *   - Sibling bar       : vertical line at sibJX spanning all children + junctionY
- *   - Child spurs       : short horizontal lines from each child card → sibJX
+ *   - Parent stubs  : horizontal lines from each parent card's left edge → coupleJX
+ *   - Couple bar    : vertical line at coupleJX connecting both parents
+ *   - Link bar      : horizontal line at junctionY from coupleJX → sibJX
+ *   - Sibling bar   : vertical line at sibJX spanning all children
+ *   - Child spurs   : horizontal lines from each child card's right edge → sibJX
  *
- * coupleJX and sibJX sit 35% into the gap between adjacent generation columns,
- * creating a clean T-bar that reads immediately as "parent couple → children".
+ * coupleJX sits 28% into the gap from the parent side.
+ * sibJX sits 28% into the gap from the child side.
+ * The middle 44% is the open horizontal bridge — giving it visual breathing room.
  *
- * Spouse pairs with no visible children get a simple vertical connector instead.
+ * Also produces marriageNodes: small visual markers at the junction point
+ * (coupleJX, junctionY) that make the family descent point obvious.
+ *
+ * Spouse pairs with no visible children get a bracket-style solo connector.
+ *
+ * Returns { routes, marriageNodes }
  */
 export function computeFamilyRoutes(positions, people, layers) {
   const NODE_W = 150
   const NODE_H = 72
 
-  const routes = []
+  const routes        = []
+  const marriageNodes = []  // { x, y, coupleKey, involvedIds }
 
   // ── Step 1: build family units (couple → visible children) ────────────
   const familyUnits = new Map()  // coupleKey → { parentIds: Set, childIds: Set }
@@ -245,9 +284,10 @@ export function computeFamilyRoutes(positions, people, layers) {
 
     if (gap <= 0) continue
 
-    // Junction x-coordinates — 35 % into the gap from each side
-    const coupleJX = parentLeft - gap * 0.35
-    const sibJX    = childRight  + gap * 0.35
+    // Junction x-coordinates — 28% into the gap from each side
+    // Leaves 44% in the middle as open horizontal bridge
+    const coupleJX = parentLeft - gap * 0.28
+    const sibJX    = childRight  + gap * 0.28
 
     const parentCYs   = parents.map(p => p.pos.y + NODE_H / 2)
     const childCYs    = children.map(c => c.pos.y + NODE_H / 2)
@@ -257,13 +297,13 @@ export function computeFamilyRoutes(positions, people, layers) {
 
     const topChildCY = childCYs[0]
     const botChildCY = childCYs[childCYs.length - 1]
-    // Sibling bar spans all children AND the junction point
+    // Sibling bar spans all children AND the junction row
     const sibTop = Math.min(topChildCY, junctionY)
     const sibBot = Math.max(botChildCY, junctionY)
 
     const push = (d, type) => routes.push({ d, type, involvedIds, coupleKey })
 
-    // 1. Stubs from each parent card's left edge → coupleJX
+    // 1. Stubs: each parent card's left edge → coupleJX
     for (const cy of parentCYs) {
       push(`M ${parentLeft} ${cy} H ${coupleJX}`, 'couple')
     }
@@ -271,14 +311,17 @@ export function computeFamilyRoutes(positions, people, layers) {
     if (parents.length >= 2) {
       push(`M ${coupleJX} ${topParentCY} V ${botParentCY}`, 'couple')
     }
-    // 3. Horizontal link at junctionY: coupleJX ← sibJX
-    push(`M ${sibJX} ${junctionY} H ${coupleJX}`, 'link')
+    // 3. Horizontal link at junctionY: coupleJX → sibJX
+    push(`M ${coupleJX} ${junctionY} H ${sibJX}`, 'link')
     // 4. Sibling bar at sibJX spanning full child range + junction
     push(`M ${sibJX} ${sibTop} V ${sibBot}`, 'sib-bar')
-    // 5. Child spurs from each child card's right edge → sibJX
+    // 5. Child spurs: each child card's right edge → sibJX
     for (const cy of childCYs) {
       push(`M ${childRight} ${cy} H ${sibJX}`, 'lineage')
     }
+
+    // Marriage node — small visual marker at the descent junction
+    marriageNodes.push({ x: coupleJX, y: junctionY, coupleKey, involvedIds })
   }
 
   // ── Step 3: solo spouse pairs (visible but no shared children) ────────
@@ -303,12 +346,22 @@ export function computeFamilyRoutes(positions, people, layers) {
       }
       if (covered) continue
 
-      // Simple vertical line between the two cards
-      const spousePos = positions.get(spouseId)
-      const upper     = pos.y <= spousePos.y ? pos : spousePos
-      const lower     = pos.y <= spousePos.y ? spousePos : pos
+      // Bracket-style connector: exits the left edge of each card,
+      // meets at a shared vertical bar just to the left of both cards.
+      const spousePos  = positions.get(spouseId)
+      const upper      = pos.y <= spousePos.y ? pos : spousePos
+      const lower      = pos.y <= spousePos.y ? spousePos : pos
+      const upperCY    = upper.y + NODE_H / 2
+      const lowerCY    = lower.y + NODE_H / 2
+      const bracketX   = upper.x - 22  // bracket hangs 22px off left edge
+
       routes.push({
-        d: `M ${upper.x + NODE_W / 2} ${upper.y + NODE_H} V ${lower.y}`,
+        d: [
+          `M ${upper.x} ${upperCY}`,
+          `H ${bracketX}`,
+          `V ${lowerCY}`,
+          `H ${lower.x}`,
+        ].join(' '),
         type: 'couple-solo',
         involvedIds: new Set([personId, spouseId]),
         coupleKey: pairKey,
@@ -316,7 +369,7 @@ export function computeFamilyRoutes(positions, people, layers) {
     }
   }
 
-  return routes
+  return { routes, marriageNodes }
 }
 
 /**
