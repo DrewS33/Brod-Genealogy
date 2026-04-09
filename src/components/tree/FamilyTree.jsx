@@ -1,6 +1,6 @@
 import { useRef, useEffect, useMemo, useState, useCallback } from 'react'
 import { select, zoom, zoomIdentity } from 'd3'
-import { computeTreeLayout, computeEdges, getRelationLabel } from '../../utils/treeLayout.js'
+import { computeTreeLayout, computeFamilyRoutes, getRelationLabel } from '../../utils/treeLayout.js'
 import { getAvatarDataUri, formatLifespan } from '../../utils/formatters.js'
 import { useFamilyContext } from '../../store/FamilyContext.jsx'
 
@@ -60,17 +60,17 @@ export default function FamilyTree({ focalPersonId, onPersonSelect, selectedPers
     setExpandedDescendants(new Set())
   }, [focalPersonId])
 
-  // Compute layout + edges
-  const { positions, layers, edges } = useMemo(() => {
+  // Compute layout + family-unit routes
+  const { positions, layers, routes } = useMemo(() => {
     if (!focalPersonId || !people.has(focalPersonId)) {
-      return { positions: new Map(), layers: new Map(), edges: [] }
+      return { positions: new Map(), layers: new Map(), routes: [] }
     }
     const { positions: pos, layers: lay } = computeTreeLayout(focalPersonId, people, {
       expandedAncestors,
       expandedDescendants,
     })
-    const edg = computeEdges(pos, people)
-    return { positions: pos, layers: lay, edges: edg }
+    const rts = computeFamilyRoutes(pos, people, lay)
+    return { positions: pos, layers: lay, routes: rts }
   }, [focalPersonId, people, expandedAncestors, expandedDescendants])
 
   // ── D3 zoom & initial centering ─────────────────────────────────────────
@@ -124,46 +124,6 @@ export default function FamilyTree({ focalPersonId, onPersonSelect, selectedPers
       .scale(0.92)
     select(svgRef.current).transition().duration(500).call(zoomRef.current.transform, t)
   }, [focalPersonId, positions])
-
-  // ── Edge highlight — edges attached to the selected person get emphasis ──
-  const highlightedEdgeIds = useMemo(() => {
-    if (!selectedPersonId) return new Set()
-    return new Set(
-      edges
-        .filter(e => e.sourceId === selectedPersonId || e.targetId === selectedPersonId)
-        .map(e => e.id)
-    )
-  }, [selectedPersonId, edges])
-
-  // ── Edge path builder ────────────────────────────────────────────────────
-  // Orthogonal routing: all turns are 90°, corners are lightly rounded (r=5).
-  // This makes relationships faster to trace than freeform curves.
-  const getEdgePath = edge => {
-    const { x1, y1, x2, y2 } = edge
-
-    if (edge.type === 'parent-child') {
-      // Horizontal layout: child RIGHT edge (x2) → parent LEFT edge (x1), where x1 > x2.
-      // Route: [child right] ─── midX ⌐ vertical ⌐ midX ─── [parent left]
-      if (Math.abs(y1 - y2) < 3) {
-        // Same row — simple straight horizontal
-        return `M ${x2} ${y2} H ${x1}`
-      }
-      const midX = (x1 + x2) / 2
-      const r    = 5  // corner rounding radius
-      const goUp = y1 < y2  // true when parent card is above child card
-      return [
-        `M ${x2} ${y2}`,
-        `H ${midX - r}`,
-        `Q ${midX} ${y2} ${midX} ${y2 + (goUp ? -r : r)}`,
-        `V ${y1 + (goUp ? r : -r)}`,
-        `Q ${midX} ${y1} ${midX + r} ${y1}`,
-        `H ${x1}`,
-      ].join(' ')
-    }
-
-    // Spouse: stacked vertically in the same column → clean vertical line
-    return `M ${x1} ${y1} V ${y2}`
-  }
 
   // ── Expand toggles ───────────────────────────────────────────────────────
   const toggleAncestor = useCallback(id => {
@@ -221,21 +181,21 @@ export default function FamilyTree({ focalPersonId, onPersonSelect, selectedPers
 
         <g ref={gRef}>
 
-          {/* ── Edges — rendered first so nodes sit on top ── */}
-          {edges.map(edge => {
-            const isHighlighted = highlightedEdgeIds.has(edge.id)
-            const isSpouse      = edge.type === 'spouse'
+          {/* ── Family-unit routes — rendered first so nodes sit on top ── */}
+          {routes.map((route, i) => {
+            const isHighlighted = selectedPersonId != null && route.involvedIds.has(selectedPersonId)
+            const isCouple      = route.type === 'couple' || route.type === 'couple-solo'
             return (
               <path
-                key={edge.id}
-                d={getEdgePath(edge)}
+                key={`${route.coupleKey}-${route.type}-${i}`}
+                d={route.d}
                 fill="none"
-                stroke={isSpouse ? '#C9A84C' : '#B8A882'}
-                strokeWidth={isHighlighted ? (isSpouse ? 1.6 : 1.2) : (isSpouse ? 1.1 : 0.75)}
-                strokeDasharray={isSpouse ? '4 4' : 'none'}
+                stroke={isCouple ? '#C9A84C' : '#B8A882'}
+                strokeWidth={isHighlighted ? (isCouple ? 1.5 : 1.1) : (isCouple ? 1.0 : 0.65)}
+                strokeDasharray={isCouple ? '4 3' : 'none'}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                opacity={isHighlighted ? (isSpouse ? 0.85 : 0.7) : (isSpouse ? 0.4 : 0.3)}
+                opacity={isHighlighted ? (isCouple ? 0.8 : 0.6) : (isCouple ? 0.45 : 0.28)}
               />
             )
           })}

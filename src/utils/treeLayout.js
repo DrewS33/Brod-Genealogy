@@ -174,6 +174,152 @@ export function computeEdges(positions, peopleMap) {
 }
 
 /**
+ * Computes structured family-unit routes for rendering.
+ *
+ * For each couple (or single parent) with visible children this produces:
+ *   - Parent stubs      : short horizontal lines from each parent card → coupleJX
+ *   - Couple bar        : vertical line at coupleJX connecting both parents
+ *   - Link bar          : horizontal line at junctionY from coupleJX ← sibJX
+ *   - Sibling bar       : vertical line at sibJX spanning all children + junctionY
+ *   - Child spurs       : short horizontal lines from each child card → sibJX
+ *
+ * coupleJX and sibJX sit 35% into the gap between adjacent generation columns,
+ * creating a clean T-bar that reads immediately as "parent couple → children".
+ *
+ * Spouse pairs with no visible children get a simple vertical connector instead.
+ */
+export function computeFamilyRoutes(positions, people, layers) {
+  const NODE_W = 150
+  const NODE_H = 72
+
+  const routes = []
+
+  // ── Step 1: build family units (couple → visible children) ────────────
+  const familyUnits = new Map()  // coupleKey → { parentIds: Set, childIds: Set }
+
+  for (const [personId] of positions) {
+    const person = people.get(personId)
+    if (!person) continue
+
+    const visibleChildren = (person.children || []).filter(id => positions.has(id))
+    if (visibleChildren.length === 0) continue
+
+    const personLayer = layers.get(personId) ?? 0
+    const visibleSpouseIds = (person.spouses || []).filter(
+      id => positions.has(id) && layers.get(id) === personLayer
+    )
+
+    const allParentIds = [personId, ...visibleSpouseIds].sort()
+    const coupleKey    = allParentIds.join('|')
+
+    if (!familyUnits.has(coupleKey)) {
+      familyUnits.set(coupleKey, {
+        parentIds: new Set(allParentIds),
+        childIds:  new Set(visibleChildren),
+      })
+    } else {
+      for (const cid of visibleChildren) familyUnits.get(coupleKey).childIds.add(cid)
+    }
+  }
+
+  // ── Step 2: generate route paths for each family unit ─────────────────
+  for (const [coupleKey, unit] of familyUnits) {
+    const { parentIds, childIds } = unit
+    const involvedIds = new Set([...parentIds, ...childIds])
+
+    const parents = [...parentIds]
+      .map(id => ({ id, pos: positions.get(id) }))
+      .filter(p => p.pos)
+      .sort((a, b) => a.pos.y - b.pos.y)
+
+    const children = [...childIds]
+      .map(id => ({ id, pos: positions.get(id) }))
+      .filter(c => c.pos)
+      .sort((a, b) => a.pos.y - b.pos.y)
+
+    if (!parents.length || !children.length) continue
+
+    const parentLeft = parents[0].pos.x            // left edge of parent cards
+    const childRight = children[0].pos.x + NODE_W  // right edge of child cards
+    const gap        = parentLeft - childRight
+
+    if (gap <= 0) continue
+
+    // Junction x-coordinates — 35 % into the gap from each side
+    const coupleJX = parentLeft - gap * 0.35
+    const sibJX    = childRight  + gap * 0.35
+
+    const parentCYs   = parents.map(p => p.pos.y + NODE_H / 2)
+    const childCYs    = children.map(c => c.pos.y + NODE_H / 2)
+    const topParentCY = parentCYs[0]
+    const botParentCY = parentCYs[parentCYs.length - 1]
+    const junctionY   = (topParentCY + botParentCY) / 2
+
+    const topChildCY = childCYs[0]
+    const botChildCY = childCYs[childCYs.length - 1]
+    // Sibling bar spans all children AND the junction point
+    const sibTop = Math.min(topChildCY, junctionY)
+    const sibBot = Math.max(botChildCY, junctionY)
+
+    const push = (d, type) => routes.push({ d, type, involvedIds, coupleKey })
+
+    // 1. Stubs from each parent card's left edge → coupleJX
+    for (const cy of parentCYs) {
+      push(`M ${parentLeft} ${cy} H ${coupleJX}`, 'couple')
+    }
+    // 2. Couple vertical bar at coupleJX (only when 2+ parents)
+    if (parents.length >= 2) {
+      push(`M ${coupleJX} ${topParentCY} V ${botParentCY}`, 'couple')
+    }
+    // 3. Horizontal link at junctionY: coupleJX ← sibJX
+    push(`M ${sibJX} ${junctionY} H ${coupleJX}`, 'link')
+    // 4. Sibling bar at sibJX spanning full child range + junction
+    push(`M ${sibJX} ${sibTop} V ${sibBot}`, 'sib-bar')
+    // 5. Child spurs from each child card's right edge → sibJX
+    for (const cy of childCYs) {
+      push(`M ${childRight} ${cy} H ${sibJX}`, 'lineage')
+    }
+  }
+
+  // ── Step 3: solo spouse pairs (visible but no shared children) ────────
+  const drawnPairs = new Set()
+  for (const [personId, pos] of positions) {
+    const person = people.get(personId)
+    if (!person) continue
+    const personLayer = layers.get(personId) ?? 0
+
+    for (const spouseId of (person.spouses || [])) {
+      if (!positions.has(spouseId)) continue
+      if (layers.get(spouseId) !== personLayer) continue
+
+      const pairKey = [personId, spouseId].sort().join('|')
+      if (drawnPairs.has(pairKey)) continue
+      drawnPairs.add(pairKey)
+
+      // Skip if already covered by a family unit couple bar
+      let covered = false
+      for (const { parentIds } of familyUnits.values()) {
+        if (parentIds.has(personId) && parentIds.has(spouseId)) { covered = true; break }
+      }
+      if (covered) continue
+
+      // Simple vertical line between the two cards
+      const spousePos = positions.get(spouseId)
+      const upper     = pos.y <= spousePos.y ? pos : spousePos
+      const lower     = pos.y <= spousePos.y ? spousePos : pos
+      routes.push({
+        d: `M ${upper.x + NODE_W / 2} ${upper.y + NODE_H} V ${lower.y}`,
+        type: 'couple-solo',
+        involvedIds: new Set([personId, spouseId]),
+        coupleKey: pairKey,
+      })
+    }
+  }
+
+  return routes
+}
+
+/**
  * Returns a short relationship label for personId relative to focalPersonId.
  */
 export function getRelationLabel(personId, focalPersonId, peopleMap) {
