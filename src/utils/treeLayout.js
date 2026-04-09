@@ -17,9 +17,9 @@
  */
 
 const NODE_H      = 72
-const GEN_X       = 290   // horizontal distance between generation columns
-const COUPLE_GAP  = 95    // vertical gap between two spouses in a couple pair
-const SIBLING_GAP = 122   // vertical gap between sibling family units
+const GEN_X       = 310   // horizontal distance between generation columns
+const COUPLE_GAP  = 115   // vertical gap between two spouses in a couple pair
+const SIBLING_GAP = 150   // vertical gap between sibling family units
 
 export function computeTreeLayout(focalPersonId, peopleMap, options = {}) {
   const {
@@ -235,8 +235,9 @@ export function computeEdges(positions, peopleMap) {
 export function computeFamilyRoutes(positions, people, layers) {
   const NODE_W       = 150
   const NODE_H       = 72
-  const COUPLE_STUB  = 20   // px from parent card left edge to coupleJX
-  const CHILD_STUB   = 20   // px from child card right edge to sibJX
+  const COUPLE_STUB  = 24   // px from parent card left edge to coupleJX
+  const CHILD_STUB   = 24   // px from child card right edge to sibJX
+  const SIB_OVERHANG = 8    // px sib-bar extends past outermost child centerline
 
   const routes        = []
   const marriageNodes = []  // { x, y, coupleKey, involvedIds }
@@ -294,7 +295,7 @@ export function computeFamilyRoutes(positions, people, layers) {
 
     // Fixed stubs — consistent at every generation level.
     // Fallback to proportional if gap is unexpectedly tight.
-    const stub     = Math.min(COUPLE_STUB, gap * 0.22)
+    const stub     = Math.min(COUPLE_STUB, gap * 0.20)
     const coupleJX = parentLeft - stub
     const sibJX    = childRight  + stub
 
@@ -330,12 +331,13 @@ export function computeFamilyRoutes(positions, people, layers) {
       push(`M ${childRight} ${cy} H ${sibJX}`, 'lineage')
     } else {
       // Multiple children: full sibling bar spanning all children.
-      // The bar extends from the topmost to bottommost child center.
-      // If junctionY falls outside that range, extend the bar to reach it.
+      // SIB_OVERHANG extends the bar slightly past the outermost children
+      // so it reads as a deliberate structural collector, not just a line.
+      // The bar also extends to reach junctionY if it falls outside child range.
       const topChildCY = childCYs[0]
       const botChildCY = childCYs[childCYs.length - 1]
-      const sibTop     = Math.min(topChildCY, junctionY)
-      const sibBot     = Math.max(botChildCY, junctionY)
+      const sibTop     = Math.min(topChildCY - SIB_OVERHANG, junctionY)
+      const sibBot     = Math.max(botChildCY + SIB_OVERHANG, junctionY)
 
       push(`M ${sibJX} ${sibTop} V ${sibBot}`, 'sib-bar')
       for (const cy of childCYs) {

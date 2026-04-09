@@ -200,29 +200,32 @@ export default function FamilyTree({ focalPersonId, onPersonSelect, selectedPers
             let stroke, strokeWidth, strokeDash, opacity
 
             if (type === 'sib-bar') {
-              // Thickest lineage element — reads as a structural bus bar
-              stroke      = '#4A3010'
-              strokeWidth = isHighlighted ? 3.0 : 2.2
+              // Structural bus bar — most prominent structural element.
+              // Heavier weight so the viewer instantly reads it as a shared
+              // family group, not just a branching line.
+              stroke      = '#3D2808'
+              strokeWidth = isHighlighted ? 3.6 : 2.8
               strokeDash  = 'none'
-              opacity     = isHighlighted ? 0.80 : 0.62
+              opacity     = isHighlighted ? 0.88 : 0.72
             } else if (type === 'spine') {
-              // Family descent spine — prominent but not as thick as sib-bar
-              stroke      = '#5C4020'
-              strokeWidth = isHighlighted ? 2.2 : 1.6
+              // Family descent spine — clear horizontal descent line.
+              // Second-most prominent; distinct from both sib-bar and lineage.
+              stroke      = '#5C3C18'
+              strokeWidth = isHighlighted ? 2.4 : 1.9
               strokeDash  = 'none'
-              opacity     = isHighlighted ? 0.78 : 0.58
+              opacity     = isHighlighted ? 0.82 : 0.65
             } else if (type === 'couple' || type === 'couple-solo') {
               // Gold dashed — visually distinct spouse bond
               stroke      = '#C9A84C'
               strokeWidth = isHighlighted ? 2.0 : 1.5
               strokeDash  = '5 3'
-              opacity     = isHighlighted ? 0.90 : 0.68
+              opacity     = isHighlighted ? 0.90 : 0.70
             } else {
-              // lineage — light child spurs, tertiary
-              stroke      = '#7A5A35'
-              strokeWidth = isHighlighted ? 1.6 : 1.2
+              // lineage — child spurs, clearly subordinate to structural elements
+              stroke      = '#8A6848'
+              strokeWidth = isHighlighted ? 1.5 : 1.1
               strokeDash  = 'none'
-              opacity     = isHighlighted ? 0.72 : 0.50
+              opacity     = isHighlighted ? 0.70 : 0.52
             }
 
             return (
@@ -248,11 +251,11 @@ export default function FamilyTree({ focalPersonId, onPersonSelect, selectedPers
                 key={`mn-${node.coupleKey}-${i}`}
                 cx={node.x}
                 cy={node.y}
-                r={5}
-                fill="#F7F2E8"
-                stroke={isHighlighted ? '#C9A84C' : '#6B4E20'}
-                strokeWidth={isHighlighted ? 2.2 : 1.8}
-                opacity={isHighlighted ? 0.98 : 0.78}
+                r={5.5}
+                fill="#F5EFE3"
+                stroke={isHighlighted ? '#C9A84C' : '#5C3C18'}
+                strokeWidth={isHighlighted ? 2.4 : 2.0}
+                opacity={isHighlighted ? 0.98 : 0.82}
               />
             )
           })}
@@ -497,13 +500,13 @@ export default function FamilyTree({ focalPersonId, onPersonSelect, selectedPers
         </div>
         <div className="tree-legend-item">
           <svg width="28" height="10">
-            <line x1="0" y1="5" x2="28" y2="5" stroke="#4A3010" strokeWidth="2.2" opacity="0.62"/>
+            <line x1="0" y1="5" x2="28" y2="5" stroke="#3D2808" strokeWidth="2.8" opacity="0.72"/>
           </svg>
           <span>Sibling group</span>
         </div>
         <div className="tree-legend-item">
           <svg width="28" height="10">
-            <line x1="0" y1="5" x2="28" y2="5" stroke="#7A5A35" strokeWidth="1.2" opacity="0.55"/>
+            <line x1="0" y1="5" x2="28" y2="5" stroke="#8A6848" strokeWidth="1.1" opacity="0.55"/>
           </svg>
           <span>Parent – Child</span>
         </div>
